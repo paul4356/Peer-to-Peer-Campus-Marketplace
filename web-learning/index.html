@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Essentials - Client-Side Learning Module</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <header class="top-header">
+    <div class="logo-container">
+      <h1 class="brand-title">STUDY <span class="highlight">ESSENTIALS</span></h1>
+      <p class="brand-tagline">BOOKS, CALCULATORS, LAB COATS, NOTES — BUY & SELL WITHIN YOUR STUDENT COMMUNITY</p>
+    </div>
+    <div class="module-badge">
+      <span class="badge-dot"></span> Web Programming Syllabus Lab
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+
+    <!-- Left Sidebar: Filters & Educational Syllabus Navigator -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3 class="section-title"><span class="icon">🎛️</span> FILTERS</h3>
+        <ul class="filter-list" id="categoryFilterList">
+          <li><button class="filter-btn active" data-category="ALL">ALL</button></li>
+          <li><button class="filter-btn" data-category="BOOKS">BOOKS</button></li>
+          <li><button class="filter-btn" data-category="NOTES">NOTES</button></li>
+          <li><button class="filter-btn" data-category="ELECTRONICS">ELECTRONICS</button></li>
+          <li><button class="filter-btn" data-category="ACCESSORIES">ACCESSORIES</button></li>
+          <li><button class="filter-btn" data-category="EG MATERIALS">EG MATERIALS</button></li>
+        </ul>
+      </div>
+
+      <!-- Need Study Resources Card (Matches Screenshot) -->
+      <div class="promo-card">
+        <h4>NEED STUDY RESOURCES?</h4>
+        <p>Get PYQs, syllabus, and exam prep materials in our Exam Hub.</p>
+        <button class="promo-btn" id="openExamHubBtn">VISIT EXAM HUB</button>
+      </div>
+
+      <!-- Quick JS Concepts Accordion -->
+      <div class="sidebar-section syllabus-box">
+        <h4>📘 CLIENT-SIDE SYLLABUS TOPICS</h4>
+        <ul class="syllabus-checklist">
+          <li>✅ Semantic HTML5 & Form Controls</li>
+          <li>✅ CSS Grid & Flexbox Layouts</li>
+          <li>✅ Media Queries & Responsive Design</li>
+          <li>✅ JavaScript Data Types & Operators</li>
+          <li>✅ Conditionals & Array Loops</li>
+          <li>✅ Event Listeners & DOM Scripting</li>
+          <li>✅ Client-side Form Validation</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <section class="content-area">
+
+      <!-- Search & Layout Controls Bar -->
+      <div class="top-controls">
+        <div class="search-bar-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="SEARCH FOR BOOKS, NOTES, CALCULATORS..." autocomplete="off">
+          <button id="clearSearchBtn" class="clear-btn">&times;</button>
+        </div>
+
+        <div class="view-toggles">
+          <button id="gridTabBtn" class="view-btn active" title="Grid View">🔲 Grid View</button>
+          <button id="formTabBtn" class="view-btn" title="Post Product Form">📝 Post Item</button>
+          <button id="labTabBtn" class="view-btn" title="JS Syllabus Lab">🧪 JS Code Lab</button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Product Grid (Matches Screenshot) -->
+      <div id="gridSection" class="tab-content active">
+        <div class="stats-row">
+          <span id="itemCountLabel">Showing 6 academic items</span>
+          <div class="sort-wrapper">
+            <label for="sortSelect">Sort By:</label>
+            <select id="sortSelect">
+              <option value="featured">Featured Items</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name-asc">Alphabetical (A-Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CSS Grid Products Container -->
+        <div class="products-grid" id="productsGrid">
+          <!-- Dynamically populated via script.js -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">📦</div>
+          <h3>No matching items found</h3>
+          <p>Try searching with another keyword or resetting the category filter.</p>
+          <button id="resetFiltersBtn" class="secondary-btn">Reset All Filters</button>
+        </div>
+      </div>
+
+      <!-- Tab 2: HTML5 Form Validation Module -->
+      <div id="formSection" class="tab-content hidden">
+        <div class="form-container">
+          <div class="form-header">
+            <h2>Post a Campus Marketplace Item</h2>
+            <p>Demonstrating HTML5 Input Types, CSS Styling, and Client-Side JS Validation</p>
+          </div>
+
+          <form id="listingForm" novalidate>
+            <div class="form-grid">
+              
+              <!-- Item Title -->
+              <div class="form-group full-width">
+                <label for="itemTitle">Item Name / Title <span class="req">*</span></label>
+                <input type="text" id="itemTitle" name="itemTitle" placeholder="e.g. Casio fx-991EX Scientific Calculator" required minlength="4">
+                <span class="error-msg" id="itemTitleError"></span>
+              </div>
+
+              <!-- Category -->
+              <div class="form-group">
+                <label for="itemCategory">Category <span class="req">*</span></label>
+                <select id="itemCategory" name="itemCategory" required>
+                  <option value="">-- Select Category --</option>
+                  <option value="BOOKS">Books & Textbooks</option>
+                  <option value="NOTES">Handwritten Notes & PYQs</option>
+                  <option value="ELECTRONICS">Electronics</option>
+                  <option value="ACCESSORIES">Lab Coats & Accessories</option>
+                  <option value="EG MATERIALS">EG Materials & Drawing</option>
+                </select>
+                <span class="error-msg" id="itemCategoryError"></span>
+              </div>
+
+              <!-- Price (with Range and Number Inputs) -->
+              <div class="form-group">
+                <label for="itemPrice">Expected Price (₹) <span class="req">*</span></label>
+                <input type="number" id="itemPrice" name="itemPrice" min="0" max="10000" placeholder="e.g. 600" required>
+                <span class="error-msg" id="itemPriceError"></span>
+              </div>
+
+              <!-- Condition (Radio buttons in ButtonGroup styling) -->
+              <div class="form-group full-width">
+                <label>Item Condition <span class="req">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" name="itemCondition" value="NEW" checked>
+                    <span>New / Unused</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="itemCondition" value="LIKE NEW">
+                    <span>Like New</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="itemCondition" value="GOOD">
+                    <span>Good</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="itemCondition" value="ACCEPTABLE">
+                    <span>Acceptable</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Seller Name & Student Roll No -->
+              <div class="form-group">
+                <label for="sellerName">Student Seller Name <span class="req">*</span></label>
+                <input type="text" id="sellerName" name="sellerName" placeholder="e.g. Atharva Gokhale" required>
+                <span class="error-msg" id="sellerNameError"></span>
+              </div>
+
+              <div class="form-group">
+                <label for="sellerEmail">College Email Address <span class="req">*</span></label>
+                <input type="email" id="sellerEmail" name="sellerEmail" placeholder="e.g. student@campus.edu" required>
+                <span class="error-msg" id="sellerEmailError"></span>
+              </div>
+
+              <!-- Description -->
+              <div class="form-group full-width">
+                <label for="itemDescription">Description & Condition Notes <span class="req">*</span></label>
+                <textarea id="itemDescription" rows="4" placeholder="Detail condition, semester used, included accessories..." required minlength="10"></textarea>
+                <span class="error-msg" id="itemDescriptionError"></span>
+              </div>
+
+              <!-- Checkbox verification -->
+              <div class="form-group full-width">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="agreeTerms" required>
+                  <span>I confirm this item complies with campus honor code and academic integrity rules.</span>
+                </label>
+                <span class="error-msg" id="agreeTermsError"></span>
+              </div>
+
+            </div>
+
+            <!-- Submit Button & Live Validation Status -->
+            <div class="form-actions">
+              <button type="submit" class="primary-btn" id="submitItemBtn">➕ Add to Live Marketplace</button>
+              <button type="reset" class="secondary-btn">Reset Form</button>
+            </div>
+            <div id="formSuccessAlert" class="alert-box success hidden">
+              🎉 Listing successfully validated and appended to the live product catalog via DOM manipulation!
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab 3: Interactive Client-Side JavaScript Syllabus Lab -->
+      <div id="labSection" class="tab-content hidden">
+        <div class="lab-container">
+          <div class="lab-header">
+            <h2>JavaScript Concepts Interactive Demonstration</h2>
+            <p>Direct code execution showing Variables, Operators, Conditionals, Loops, Functions & DOM Events</p>
+          </div>
+
+          <div class="lab-grid">
+
+            <!-- Card 1: Variables & Operators -->
+            <div class="lab-card">
+              <h3>1. Variables & Operators</h3>
+              <p>Calculate student discount and campus taxes dynamically.</p>
+              <div class="lab-input-group">
+                <label>Original Price (₹):</label>
+                <input type="number" id="labOriginalPrice" value="600">
+                <label>Student Discount (%):</label>
+                <input type="number" id="labDiscount" value="25">
+                <button class="lab-run-btn" id="runCalcBtn">Compute Final Price</button>
+              </div>
+              <div class="code-output" id="labCalcOutput">Output will appear here...</div>
+            </div>
+
+            <!-- Card 2: Conditionals & Logic -->
+            <div class="lab-card">
+              <h3>2. Conditionals (if/else & switch)</h3>
+              <p>Evaluate condition rating and suitability for exams.</p>
+              <div class="lab-input-group">
+                <label>Select Item Condition:</label>
+                <select id="labConditionSelect">
+                  <option value="NEW">New</option>
+                  <option value="LIKE NEW">Like New</option>
+                  <option value="GOOD">Good</option>
+                  <option value="ACCEPTABLE">Acceptable</option>
+                </select>
+                <button class="lab-run-btn" id="runConditionBtn">Evaluate Condition</button>
+              </div>
+              <div class="code-output" id="labConditionOutput">Output will appear here...</div>
+            </div>
+
+            <!-- Card 3: Loops & Arrays -->
+            <div class="lab-card">
+              <h3>3. Loops & Array Higher-Order Methods</h3>
+              <p>Demonstrates <code>for</code> loop, <code>Array.filter()</code> and <code>Array.reduce()</code>.</p>
+              <div class="lab-input-group">
+                <button class="lab-run-btn" id="runArrayDemoBtn">Run Array Operations</button>
+              </div>
+              <div class="code-output" id="labArrayOutput">Click run to analyze active catalog data...</div>
+            </div>
+
+            <!-- Card 4: DOM Manipulation & Event Handling -->
+            <div class="lab-card">
+              <h3>4. Dynamic DOM Manipulation</h3>
+              <p>Creates, modifies, and attaches live DOM elements dynamically.</p>
+              <div class="lab-input-group">
+                <input type="text" id="domItemText" placeholder="New Quick Note Title...">
+                <button class="lab-run-btn" id="addDomNoteBtn">Append Note to DOM</button>
+              </div>
+              <ul class="dom-demo-list" id="domDemoList">
+                <li>Sample Academic Note 1 (Click to remove)</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Modal for Product Details / Chat Simulation -->
+  <div id="productModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
+      <div class="modal-body" id="modalBody">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
