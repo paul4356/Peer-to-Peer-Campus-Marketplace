@@ -43,6 +43,7 @@ use App\Controllers\AuthController;
 use App\Controllers\ProfileController;
 use App\Controllers\CategoryController;
 use App\Controllers\ListingController;
+use App\Controllers\UploadController;
 use App\Controllers\WishlistController;
 use App\Controllers\SellerController;
 use App\Controllers\AdminController;
@@ -122,6 +123,10 @@ if ($path === '/api/profile' && ($method === 'PUT' || $method === 'POST')) {
 // 4. Categories
 if ($path === '/api/categories' && $method === 'GET') {
     (new CategoryController())->index();
+}
+
+if ($path === '/api/uploads/listings' && $method === 'POST') {
+    (new UploadController())->listingImage();
 }
 
 // 5. Listings

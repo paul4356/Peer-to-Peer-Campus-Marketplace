@@ -14,6 +14,9 @@ COPY backend-php/ /var/www/backend-php/
 COPY database/ /var/www/database/
 COPY render-start.sh /usr/local/bin/render-start
 
+RUN printf '%s\n' 'upload_max_filesize = 5M' 'post_max_size = 6M' \
+        > /usr/local/etc/php/conf.d/marketplace-uploads.ini
+
 RUN chmod +x /usr/local/bin/render-start \
     && printf '%s\n' \
         '<Directory /var/www/html>' \
@@ -21,6 +24,8 @@ RUN chmod +x /usr/local/bin/render-start \
         '    Require all granted' \
         '</Directory>' \
         > /etc/apache2/conf-available/marketplace.conf \
+    && mkdir -p /var/www/html/uploads/items \
+    && chown -R www-data:www-data /var/www/html/uploads \
     && a2enconf marketplace \
     && apachectl -t
 

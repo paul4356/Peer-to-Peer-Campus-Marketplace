@@ -6,10 +6,31 @@ let currentUser = null;
 let selectedCategory = 'ALL';
 let searchQuery = '';
 let currentSort = 'featured';
+const legacyProductImages = {
+  'beer_johnston.png': 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=700&auto=format&fit=crop&q=80',
+  'bs_grewal.png': 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=700&auto=format&fit=crop&q=80',
+  'campus_bike.png': 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=700&auto=format&fit=crop&q=80',
+  'casio_calc.png': 'https://images.unsplash.com/photo-1587145820266-a5951ee6f620?w=700&auto=format&fit=crop&q=80',
+  'eg_kit.png': 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=700&auto=format&fit=crop&q=80',
+  'lab_coat.png': 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=700&auto=format&fit=crop&q=80',
+  'multimeter.png': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=700&auto=format&fit=crop&q=80',
+  'roller_scale_15.png': 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=700&auto=format&fit=crop&q=80',
+  'roller_scale_box.png': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=700&auto=format&fit=crop&q=80',
+  'rounder.png': 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=700&auto=format&fit=crop&q=80'
+};
+const categoryFallbackImages = {
+  bicycles: legacyProductImages['campus_bike.png'],
+  books: legacyProductImages['bs_grewal.png'],
+  calculators: legacyProductImages['casio_calc.png'],
+  electronics: legacyProductImages['multimeter.png'],
+  'lab-coats': legacyProductImages['lab_coat.png'],
+  'lab-equipment': legacyProductImages['multimeter.png'],
+  stationery: legacyProductImages['roller_scale_15.png']
+};
 
 async function apiRequest(path, options = {}) {
   const headers = { Accept: 'application/json', ...(options.headers || {}) };
-  if (options.body) headers['Content-Type'] = 'application/json';
+  if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
   const response = await fetch(path, { ...options, headers });
@@ -20,6 +41,21 @@ async function apiRequest(path, options = {}) {
     throw error;
   }
   return payload.data;
+}
+
+function resolveListingImage(imageUrl, categorySlug) {
+  const value = String(imageUrl || '').trim();
+  if (/^https?:\/\//i.test(value)) return value;
+
+  const filename = value.split(/[\\/]/).pop()?.toLowerCase();
+  if (filename && legacyProductImages[filename]) return legacyProductImages[filename];
+
+  const relativeUpload = value.replace(/^\/+/, '');
+  if (/^uploads\/items\/[a-f0-9]{32}\.(?:jpg|png|webp)$/i.test(relativeUpload)) {
+    return `/${relativeUpload}`;
+  }
+
+  return categoryFallbackImages[categorySlug] || categoryFallbackImages.books;
 }
 
 function setAuthMessage(message, isSuccess = false) {
@@ -72,9 +108,7 @@ async function loadMarketplace() {
     seller: listing.seller.name,
     sellerEmail: listing.seller.email,
     description: listing.description,
-    image: /^https?:\/\//i.test(listing.image_url || '')
-      ? listing.image_url
-      : 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop&q=60'
+    image: resolveListingImage(listing.image_url, listing.category.slug)
   }));
   renderCategories();
   renderProducts();
@@ -462,6 +496,46 @@ formTabBtn.addEventListener('click', () => switchTab(formTabBtn, formSection));
 // 4. Client-Side Form Validation & DOM Injection
 // ------------------------------------------------------------------------------
 const listingForm = document.getElementById('listingForm');
+const itemImageInput = document.getElementById('itemImage');
+const itemImageError = document.getElementById('itemImageError');
+const itemImagePreview = document.getElementById('itemImagePreview');
+const itemImagePreviewImg = document.getElementById('itemImagePreviewImg');
+let itemImagePreviewUrl = null;
+
+itemImageInput.addEventListener('change', () => {
+  const file = itemImageInput.files[0];
+  itemImageError.textContent = '';
+  itemImageInput.classList.remove('invalid');
+  if (itemImagePreviewUrl) URL.revokeObjectURL(itemImagePreviewUrl);
+  itemImagePreviewUrl = null;
+
+  if (!file) {
+    itemImagePreview.classList.add('hidden');
+    itemImagePreviewImg.removeAttribute('src');
+    return;
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+    itemImageError.textContent = 'Choose a JPEG, PNG, or WebP image no larger than 5 MB.';
+    itemImageInput.classList.add('invalid');
+    itemImageInput.value = '';
+    itemImagePreview.classList.add('hidden');
+    return;
+  }
+
+  itemImagePreviewUrl = URL.createObjectURL(file);
+  itemImagePreviewImg.src = itemImagePreviewUrl;
+  itemImagePreview.classList.remove('hidden');
+});
+
+listingForm.addEventListener('reset', () => {
+  if (itemImagePreviewUrl) URL.revokeObjectURL(itemImagePreviewUrl);
+  itemImagePreviewUrl = null;
+  itemImagePreviewImg.removeAttribute('src');
+  itemImagePreview.classList.add('hidden');
+  itemImageError.textContent = '';
+});
 
 listingForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -512,6 +586,13 @@ listingForm.addEventListener('submit', async (e) => {
     isValid = false;
   }
 
+  const imageFile = itemImageInput.files[0];
+  if (!imageFile) {
+    itemImageError.textContent = 'Please add a photo of the item.';
+    itemImageInput.classList.add('invalid');
+    isValid = false;
+  }
+
   if (!isValid) return;
 
   // Selected Condition from Radio buttons
@@ -529,6 +610,13 @@ listingForm.addEventListener('submit', async (e) => {
   submitButton.disabled = true;
   alertBox.classList.add('hidden');
   try {
+    const uploadForm = new FormData();
+    uploadForm.append('image', imageFile);
+    const uploadData = await apiRequest('/api/uploads/listings', {
+      method: 'POST',
+      body: uploadForm
+    });
+
     await apiRequest('/api/listings', {
       method: 'POST',
       body: JSON.stringify({
@@ -536,7 +624,8 @@ listingForm.addEventListener('submit', async (e) => {
         description: descInput.value.trim(),
         price: priceVal,
         category_id: Number(categoryInput.value),
-        condition_state: conditionMap[condition]
+        condition_state: conditionMap[condition],
+        image_url: uploadData.image_url
       })
     });
     alertBox.textContent = 'Your listing was published to the marketplace.';

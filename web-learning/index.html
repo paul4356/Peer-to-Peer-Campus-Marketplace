@@ -230,6 +230,16 @@
                 <span class="error-msg" id="itemDescriptionError"></span>
               </div>
 
+              <div class="form-group full-width">
+                <label for="itemImage">Item Photo <span class="req">*</span></label>
+                <input type="file" id="itemImage" name="itemImage" accept="image/jpeg,image/png,image/webp" required>
+                <span class="image-hint">Upload a JPEG, PNG, or WebP image (maximum 5 MB).</span>
+                <span class="error-msg" id="itemImageError"></span>
+                <div id="itemImagePreview" class="image-preview hidden">
+                  <img id="itemImagePreviewImg" alt="Selected item photo preview">
+                </div>
+              </div>
+
               <!-- Checkbox verification -->
               <div class="form-group full-width">
                 <label class="checkbox-label">

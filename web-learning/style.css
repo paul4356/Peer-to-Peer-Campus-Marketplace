@@ -807,6 +807,26 @@ body {
   min-height: 16px;
 }
 
+.image-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.image-preview {
+  width: min(100%, 320px);
+  height: 180px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* Radio Group */
 .radio-group {
   display: flex;

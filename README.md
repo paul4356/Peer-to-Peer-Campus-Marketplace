@@ -195,6 +195,9 @@ The web client starts with login and registration forms, validates sessions
 through the PHP API, loads marketplace listings/categories from the database,
 and submits listings through the API. Newly registered student accounts remain
 pending until an administrator approves them; only approved students can post.
+Posting an item requires a JPEG, PNG, or WebP photo (up to 5 MB). Uploaded files
+are served from `web-learning/uploads/items`; on Render, use persistent storage
+or external object storage if photos must survive service rebuilds and deploys.
 
 ---
 
