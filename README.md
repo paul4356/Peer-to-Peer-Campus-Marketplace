@@ -197,7 +197,11 @@ Create a **Web Service** from this repository, choose **Docker**, and leave
 `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASS` with connection
 details for a MySQL database reachable from Render. Render's free web service
 can sleep when idle; it does not provide the MySQL database required by this
-application.
+application. Do not set `DB_HOST` to `localhost` or `127.0.0.1`; those point
+back to the web-service container, not to a separate database. If the page
+reports `DB_CONNECTION_ERROR` or `SQLSTATE[HY000] [2002] Connection refused`,
+check the Render service logs and verify all five database variables with your
+MySQL provider. The MySQL host must accept connections from Render.
 
 The web client starts with login and registration forms, validates sessions
 through the PHP API, loads marketplace listings/categories from the database,

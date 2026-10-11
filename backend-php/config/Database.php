@@ -5,6 +5,7 @@ namespace App\Config;
 
 use PDO;
 use PDOException;
+use App\Utils\Response;
 
 class Database
 {
@@ -13,10 +14,6 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$instance === null) {
-            if (!Config::hasExternalDatabaseConfig()) {
-                self::ensureDatabaseExists();
-            }
-
             $dsn = sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
                 Config::dbHost(),
@@ -32,17 +29,19 @@ class Database
             ];
 
             try {
+                if (!Config::hasExternalDatabaseConfig()) {
+                    self::ensureDatabaseExists();
+                }
+
                 self::$instance = new PDO($dsn, Config::dbUser(), Config::dbPass(), $options);
                 self::ensureRequiredSchema(self::$instance);
             } catch (PDOException $e) {
-                // Secure handling: Do not leak DB credentials or stack trace to client
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Database connection failed. Please ensure MySQL server is active in XAMPP.',
-                    'code' => 'DB_CONNECTION_ERROR'
-                ], JSON_PRETTY_PRINT);
-                exit;
+                error_log('Marketplace database connection failed: ' . $e->getMessage());
+                Response::error(
+                    'Cannot connect to MySQL. Check that DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASS are set to a reachable MySQL server. Do not use localhost or 127.0.0.1 for a separately hosted database.',
+                    500,
+                    ['code' => 'DB_CONNECTION_ERROR']
+                );
             }
         }
 

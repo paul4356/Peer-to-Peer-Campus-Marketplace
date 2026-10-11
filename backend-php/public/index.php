@@ -51,7 +51,8 @@ use App\Utils\Response;
 
 // Global exception handler
 set_exception_handler(function (Throwable $e) {
-    Response::error('Server Error: ' . $e->getMessage(), 500);
+    error_log('Marketplace API error: ' . $e->getMessage());
+    Response::error('An unexpected server error occurred. Check the service logs for details.', 500);
 });
 
 // Parse request URI and HTTP method
