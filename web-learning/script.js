@@ -1,20 +1,8 @@
-/**
- * ==============================================================================
- * PEER-TO-PEER CAMPUS MARKETPLACE - CLIENT-SIDE JAVASCRIPT LAB
- * Demonstrates:
- * 1. Variables (let, const), Operators (arithmetic, logical, ternary)
- * 2. Conditionals (if/else, switch) and Loops (for, forEach, map, filter, reduce)
- * 3. Functions (arrow functions, pure functions, event callbacks)
- * 4. DOM Manipulation (createElement, querySelector, appendChild, classList)
- * 5. Event Listeners (click, input, submit, change)
- * 6. Form Validation with custom regex and real-time feedback
- * ==============================================================================
- */
-
 // Active State Variables
 let currentProducts = [];
 let marketplaceCategories = [];
 let authToken = sessionStorage.getItem('marketplaceToken');
+let currentUser = null;
 let selectedCategory = 'ALL';
 let searchQuery = '';
 let currentSort = 'featured';
@@ -41,10 +29,13 @@ function setAuthMessage(message, isSuccess = false) {
 }
 
 function showAuthenticatedApp(user) {
+  currentUser = user;
   document.getElementById('authPage').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('accountControls').classList.remove('hidden');
   document.getElementById('accountName').textContent = `${user.full_name} · ${user.verification_status}`;
+  document.getElementById('adminBtn').classList.toggle('hidden', user.role !== 'admin');
+  showWorkspace('marketplace');
   loadMarketplace().catch(error => {
     document.getElementById('itemCountLabel').textContent = `Could not load marketplace: ${error.message}`;
   });
@@ -54,6 +45,11 @@ function showAuthentication() {
   document.getElementById('authPage').classList.remove('hidden');
   document.getElementById('appContainer').classList.add('hidden');
   document.getElementById('accountControls').classList.add('hidden');
+  document.getElementById('profileSection').classList.add('hidden');
+  document.getElementById('adminSection').classList.add('hidden');
+  document.getElementById('marketplaceSection').classList.remove('hidden');
+  document.getElementById('appContainer').classList.remove('panel-open');
+  currentUser = null;
   registerForm.classList.add('hidden');
   loginForm.classList.remove('hidden');
   document.getElementById('authTitle').textContent = 'Welcome back';
@@ -83,6 +79,137 @@ async function loadMarketplace() {
   renderCategories();
   renderProducts();
 }
+
+function showWorkspace(name) {
+  const isProfile = name === 'profile';
+  const isAdmin = name === 'admin';
+  document.getElementById('marketplaceSection').classList.toggle('hidden', isProfile || isAdmin);
+  document.getElementById('profileSection').classList.toggle('hidden', !isProfile);
+  document.getElementById('adminSection').classList.toggle('hidden', !isAdmin);
+  document.getElementById('appContainer').classList.toggle('panel-open', isProfile || isAdmin);
+  if (isProfile) loadProfile().catch(error => {
+    document.getElementById('profileMessage').textContent = `Could not load your profile: ${error.message}`;
+  });
+  if (isAdmin) loadAdminDashboard().catch(error => {
+    document.getElementById('adminMessage').textContent = `Could not load admin dashboard: ${error.message}`;
+  });
+}
+
+async function loadProfile() {
+  if (!currentUser) return;
+  document.getElementById('profileFullName').value = currentUser.full_name || '';
+  document.getElementById('profileStudentId').value = currentUser.student_id || '';
+  document.getElementById('profileEmail').value = currentUser.email || '';
+  document.getElementById('profilePhone').value = currentUser.phone || '';
+  document.getElementById('profileDepartment').value = currentUser.department || '';
+  document.getElementById('profileYear').value = currentUser.year_of_study || '';
+  document.getElementById('profilePassword').value = '';
+  const status = currentUser.verification_status || 'unknown';
+  document.getElementById('profileStatus').textContent =
+    `Account status: ${status}${currentUser.role === 'admin' ? ' · Administrator' : ''}`;
+  const data = await apiRequest('/api/me/listings');
+  const listings = data.listings || [];
+  const listingContainer = document.getElementById('myListingsList');
+  listingContainer.innerHTML = listings.length
+    ? listings.map(listing => `
+      <article class="panel-list-item">
+        <div><strong>${escapeHtml(listing.title)}</strong><span>${escapeHtml(listing.category_name)} · ₹${escapeHtml(listing.price)}</span></div>
+        <span class="listing-status">${escapeHtml(listing.status)}</span>
+      </article>`).join('')
+    : '<p>You have not posted any listings yet.</p>';
+}
+
+async function loadAdminDashboard() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const [dashboard, verificationData] = await Promise.all([
+    apiRequest('/api/admin/dashboard'),
+    apiRequest('/api/admin/verifications')
+  ]);
+  const metrics = dashboard.metrics || {};
+  document.getElementById('adminMetrics').innerHTML = [
+    ['Students', metrics.total_users],
+    ['Pending approvals', metrics.pending_verifications],
+    ['Listings', metrics.total_listings],
+    ['Reports', metrics.total_reports]
+  ].map(([label, value]) => `
+    <div class="metric-card"><span>${escapeHtml(label)}</span><strong>${Number(value || 0)}</strong></div>
+  `).join('');
+
+  const requests = verificationData.verifications || [];
+  const list = document.getElementById('pendingVerifications');
+  list.innerHTML = requests.length
+    ? requests.map(student => `
+      <article class="panel-list-item verification-item">
+        <div>
+          <strong>${escapeHtml(student.full_name)}</strong>
+          <span>${escapeHtml(student.student_id)} · ${escapeHtml(student.email)}</span>
+          <span>${escapeHtml(student.department || 'Department not provided')}</span>
+        </div>
+        <div class="verification-actions">
+          <button type="button" class="primary-btn" data-verification="approved" data-user-id="${Number(student.id)}">Approve</button>
+          <button type="button" class="danger-btn" data-verification="rejected" data-user-id="${Number(student.id)}">Reject</button>
+        </div>
+      </article>`).join('')
+    : '<p>There are no student accounts waiting for approval.</p>';
+}
+
+document.getElementById('profileBtn').addEventListener('click', () => showWorkspace('profile'));
+document.getElementById('adminBtn').addEventListener('click', () => showWorkspace('admin'));
+document.getElementById('backToMarketplaceBtn').addEventListener('click', () => showWorkspace('marketplace'));
+document.getElementById('adminBackBtn').addEventListener('click', () => showWorkspace('marketplace'));
+
+document.getElementById('profileForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = document.getElementById('saveProfileBtn');
+  const message = document.getElementById('profileMessage');
+  button.disabled = true;
+  message.textContent = '';
+  const body = {
+    full_name: document.getElementById('profileFullName').value.trim(),
+    phone: document.getElementById('profilePhone').value.trim(),
+    department: document.getElementById('profileDepartment').value.trim(),
+    year_of_study: Number(document.getElementById('profileYear').value)
+  };
+  const password = document.getElementById('profilePassword').value;
+  if (password) body.password = password;
+  try {
+    const result = await apiRequest('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    });
+    currentUser = result.user;
+    document.getElementById('accountName').textContent =
+      `${currentUser.full_name} · ${currentUser.verification_status}`;
+    message.textContent = 'Profile saved successfully.';
+    await loadProfile();
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById('pendingVerifications').addEventListener('click', async event => {
+  const button = event.target.closest('button[data-verification]');
+  if (!button) return;
+  button.disabled = true;
+  const message = document.getElementById('adminMessage');
+  message.textContent = '';
+  try {
+    await apiRequest(`/api/admin/users/${button.dataset.userId}/verification`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: button.dataset.verification,
+        reason: button.dataset.verification === 'rejected' ? 'Please contact campus administration for details.' : ''
+      })
+    });
+    message.textContent = `Student ${button.dataset.verification} successfully.`;
+    await loadAdminDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+    button.disabled = false;
+  }
+});
 
 function renderCategories() {
   categoryFilterList.innerHTML = '<li><button class="filter-btn active" data-category="ALL">ALL</button></li>';
@@ -129,10 +256,8 @@ const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 // Navigation Tabs
 const gridTabBtn = document.getElementById('gridTabBtn');
 const formTabBtn = document.getElementById('formTabBtn');
-const labTabBtn = document.getElementById('labTabBtn');
 const gridSection = document.getElementById('gridSection');
 const formSection = document.getElementById('formSection');
-const labSection = document.getElementById('labSection');
 
 // Modal Elements
 const productModal = document.getElementById('productModal');
@@ -323,8 +448,8 @@ window.addEventListener('click', (e) => {
 // 3. Tab Navigation (Switching Views)
 // ------------------------------------------------------------------------------
 function switchTab(activeBtn, activeSection) {
-  [gridTabBtn, formTabBtn, labTabBtn].forEach(btn => btn.classList.remove('active'));
-  [gridSection, formSection, labSection].forEach(sec => sec.classList.add('hidden'));
+  [gridTabBtn, formTabBtn].forEach(btn => btn.classList.remove('active'));
+  [gridSection, formSection].forEach(sec => sec.classList.add('hidden'));
 
   activeBtn.classList.add('active');
   activeSection.classList.remove('hidden');
@@ -332,12 +457,6 @@ function switchTab(activeBtn, activeSection) {
 
 gridTabBtn.addEventListener('click', () => switchTab(gridTabBtn, gridSection));
 formTabBtn.addEventListener('click', () => switchTab(formTabBtn, formSection));
-labTabBtn.addEventListener('click', () => switchTab(labTabBtn, labSection));
-
-// Promo Exam Hub Button
-document.getElementById('openExamHubBtn').addEventListener('click', () => {
-  alert('Exam Hub: Semester question papers, graphics drawing templates, and notes repository active!');
-});
 
 // ------------------------------------------------------------------------------
 // 4. Client-Side Form Validation & DOM Injection
@@ -437,104 +556,6 @@ listingForm.addEventListener('submit', async (e) => {
   } finally {
     submitButton.disabled = false;
   }
-});
-
-// ------------------------------------------------------------------------------
-// 5. JavaScript Syllabus Lab Interactive Demonstrations
-// ------------------------------------------------------------------------------
-
-// Demo 1: Variables & Operators
-document.getElementById('runCalcBtn').addEventListener('click', () => {
-  const original = parseFloat(document.getElementById('labOriginalPrice').value) || 0;
-  const discountPercent = parseFloat(document.getElementById('labDiscount').value) || 0;
-
-  // Mathematical and logical operators
-  const discountAmount = original * (discountPercent / 100);
-  const finalPrice = original - discountAmount;
-  const savingsGrade = (discountPercent >= 20) ? 'HIGH SAVINGS' : 'REGULAR PRICE';
-
-  const output = `// JavaScript Variables & Arithmetic Operators
-const originalPrice = ${original};
-const discount = ${discountPercent}%;
-const savings = ${discountAmount.toFixed(2)};
-const finalPrice = ${finalPrice.toFixed(2)};
-const status = "${savingsGrade}";
-
->> Calculated Final Price: ₹${finalPrice.toFixed(2)} (${savingsGrade})`;
-
-  document.getElementById('labCalcOutput').textContent = output;
-});
-
-// Demo 2: Conditionals (if/else & switch)
-document.getElementById('runConditionBtn').addEventListener('click', () => {
-  const condition = document.getElementById('labConditionSelect').value;
-  let examApproved = false;
-  let warrantyRecommendation = '';
-
-  // Switch statement demonstration
-  switch (condition) {
-    case 'NEW':
-      examApproved = true;
-      warrantyRecommendation = 'Full manufacturer warranty eligible.';
-      break;
-    case 'LIKE NEW':
-      examApproved = true;
-      warrantyRecommendation = 'Near mint condition, exam invigilator approved.';
-      break;
-    case 'GOOD':
-      examApproved = true;
-      warrantyRecommendation = 'Minor exterior marks, fully functional hardware.';
-      break;
-    case 'ACCEPTABLE':
-      examApproved = false;
-      warrantyRecommendation = 'Recommend physical testing before semester exams.';
-      break;
-    default:
-      warrantyRecommendation = 'Unclassified condition rating.';
-  }
-
-  const output = `// JavaScript Conditionals (switch-case statement)
-Condition Evaluated: "${condition}"
-Exam Hall Approved: ${examApproved ? 'YES ✅' : 'CAUTION ⚠️'}
-Recommendation: ${warrantyRecommendation}`;
-
-  document.getElementById('labConditionOutput').textContent = output;
-});
-
-// Demo 3: Loops & Array Methods
-document.getElementById('runArrayDemoBtn').addEventListener('click', () => {
-  // Higher-order array functions: filter, map, reduce
-  const affordableItems = currentProducts.filter(item => item.price < 200);
-  const itemNames = affordableItems.map(item => item.title);
-  const totalValue = currentProducts.reduce((sum, item) => sum + item.price, 0);
-  const averagePrice = (totalValue / currentProducts.length).toFixed(2);
-
-  const output = `// JavaScript Higher-Order Array Methods
-Active Catalog Count: ${currentProducts.length} items
-Total Marketplace Value: ₹${totalValue}
-Average Item Price: ₹${averagePrice}
-
-Affordable Items (< ₹200) Count: ${affordableItems.length}
-Items:
-${itemNames.map((n, i) => `  ${i + 1}. ${n}`).join('\n')}`;
-
-  document.getElementById('labArrayOutput').textContent = output;
-});
-
-// Demo 4: Dynamic DOM Manipulation (Add/Remove items)
-document.getElementById('addDomNoteBtn').addEventListener('click', () => {
-  const textInput = document.getElementById('domItemText');
-  const text = textInput.value.trim();
-  if (!text) return;
-
-  const li = document.createElement('li');
-  li.textContent = text + ' (Click to remove)';
-  li.addEventListener('click', () => {
-    li.remove(); // DOM element removal demonstration
-  });
-
-  document.getElementById('domDemoList').appendChild(li);
-  textInput.value = '';
 });
 
 const loginForm = document.getElementById('loginForm');

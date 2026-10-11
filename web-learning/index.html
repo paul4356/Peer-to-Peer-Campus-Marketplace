@@ -17,11 +17,10 @@
       <h1 class="brand-title">STUDY <span class="highlight">ESSENTIALS</span></h1>
       <p class="brand-tagline">BOOKS, CALCULATORS, LAB COATS, NOTES — BUY & SELL WITHIN YOUR STUDENT COMMUNITY</p>
     </div>
-    <div class="module-badge">
-      <span class="badge-dot"></span> Web Programming Syllabus Lab
-    </div>
     <div class="account-controls hidden" id="accountControls">
       <span id="accountName"></span>
+      <button type="button" class="secondary-btn" id="profileBtn">My Profile</button>
+      <button type="button" class="secondary-btn hidden" id="adminBtn">Admin</button>
       <button type="button" class="secondary-btn" id="logoutBtn">Log out</button>
     </div>
   </header>
@@ -62,7 +61,7 @@
   <!-- Main Container -->
   <main class="app-container hidden" id="appContainer">
 
-    <!-- Left Sidebar: Filters & Educational Syllabus Navigator -->
+    <!-- Marketplace filters -->
     <aside class="sidebar">
       <div class="sidebar-section">
         <h3 class="section-title"><span class="icon">🎛️</span> FILTERS</h3>
@@ -71,30 +70,58 @@
         </ul>
       </div>
 
-      <!-- Need Study Resources Card (Matches Screenshot) -->
-      <div class="promo-card">
-        <h4>NEED STUDY RESOURCES?</h4>
-        <p>Get PYQs, syllabus, and exam prep materials in our Exam Hub.</p>
-        <button class="promo-btn" id="openExamHubBtn">VISIT EXAM HUB</button>
-      </div>
-
-      <!-- Quick JS Concepts Accordion -->
-      <div class="sidebar-section syllabus-box">
-        <h4>📘 CLIENT-SIDE SYLLABUS TOPICS</h4>
-        <ul class="syllabus-checklist">
-          <li>✅ Semantic HTML5 & Form Controls</li>
-          <li>✅ CSS Grid & Flexbox Layouts</li>
-          <li>✅ Media Queries & Responsive Design</li>
-          <li>✅ JavaScript Data Types & Operators</li>
-          <li>✅ Conditionals & Array Loops</li>
-          <li>✅ Event Listeners & DOM Scripting</li>
-          <li>✅ Client-side Form Validation</li>
-        </ul>
-      </div>
     </aside>
 
     <!-- Main Content Area -->
     <section class="content-area">
+      <section id="profileSection" class="workspace-panel hidden" aria-labelledby="profileHeading">
+        <div class="panel-heading">
+          <div>
+            <h2 id="profileHeading">My Profile</h2>
+            <p>View and update your campus account details.</p>
+          </div>
+          <button type="button" class="secondary-btn" id="backToMarketplaceBtn">Back to marketplace</button>
+        </div>
+        <p id="profileStatus" class="status-banner"></p>
+        <form id="profileForm" class="profile-form">
+          <label for="profileFullName">Full name</label>
+          <input type="text" id="profileFullName" name="full_name" required minlength="2">
+          <label for="profileStudentId">Student ID</label>
+          <input type="text" id="profileStudentId" readonly>
+          <label for="profileEmail">Email</label>
+          <input type="email" id="profileEmail" readonly>
+          <label for="profilePhone">Phone</label>
+          <input type="tel" id="profilePhone" name="phone">
+          <label for="profileDepartment">Department</label>
+          <input type="text" id="profileDepartment" name="department">
+          <label for="profileYear">Year of study</label>
+          <input type="number" id="profileYear" name="year_of_study" min="0" max="8">
+          <label for="profilePassword">New password <span class="optional-label">(leave blank to keep current password)</span></label>
+          <input type="password" id="profilePassword" name="password" minlength="6" autocomplete="new-password">
+          <button class="primary-btn" type="submit" id="saveProfileBtn">Save profile</button>
+          <p id="profileMessage" class="panel-message" role="status" aria-live="polite"></p>
+        </form>
+        <div class="my-listings">
+          <h3>My Listings</h3>
+          <div id="myListingsList" class="panel-list">Loading your listings…</div>
+        </div>
+      </section>
+
+      <section id="adminSection" class="workspace-panel hidden" aria-labelledby="adminHeading">
+        <div class="panel-heading">
+          <div>
+            <h2 id="adminHeading">Admin dashboard</h2>
+            <p>Review student account requests and manage campus verification.</p>
+          </div>
+          <button type="button" class="secondary-btn" id="adminBackBtn">Back to marketplace</button>
+        </div>
+        <div id="adminMetrics" class="admin-metrics"></div>
+        <h3>Pending student approvals</h3>
+        <p id="adminMessage" class="panel-message" role="status" aria-live="polite"></p>
+        <div id="pendingVerifications" class="panel-list">Loading approval requests…</div>
+      </section>
+
+      <div id="marketplaceSection">
 
       <!-- Search & Layout Controls Bar -->
       <div class="top-controls">
@@ -107,7 +134,6 @@
         <div class="view-toggles">
           <button id="gridTabBtn" class="view-btn active" title="Grid View">🔲 Grid View</button>
           <button id="formTabBtn" class="view-btn" title="Post Product Form">📝 Post Item</button>
-          <button id="labTabBtn" class="view-btn" title="JS Syllabus Lab">🧪 JS Code Lab</button>
         </div>
       </div>
 
@@ -145,7 +171,7 @@
         <div class="form-container">
           <div class="form-header">
             <h2>Post a Campus Marketplace Item</h2>
-            <p>Demonstrating HTML5 Input Types, CSS Styling, and Client-Side JS Validation</p>
+            <p>Share a useful item with students in your campus community.</p>
           </div>
 
           <form id="listingForm" novalidate>
@@ -227,74 +253,7 @@
         </div>
       </div>
 
-      <!-- Tab 3: Interactive Client-Side JavaScript Syllabus Lab -->
-      <div id="labSection" class="tab-content hidden">
-        <div class="lab-container">
-          <div class="lab-header">
-            <h2>JavaScript Concepts Interactive Demonstration</h2>
-            <p>Direct code execution showing Variables, Operators, Conditionals, Loops, Functions & DOM Events</p>
-          </div>
-
-          <div class="lab-grid">
-
-            <!-- Card 1: Variables & Operators -->
-            <div class="lab-card">
-              <h3>1. Variables & Operators</h3>
-              <p>Calculate student discount and campus taxes dynamically.</p>
-              <div class="lab-input-group">
-                <label>Original Price (₹):</label>
-                <input type="number" id="labOriginalPrice" value="600">
-                <label>Student Discount (%):</label>
-                <input type="number" id="labDiscount" value="25">
-                <button class="lab-run-btn" id="runCalcBtn">Compute Final Price</button>
-              </div>
-              <div class="code-output" id="labCalcOutput">Output will appear here...</div>
-            </div>
-
-            <!-- Card 2: Conditionals & Logic -->
-            <div class="lab-card">
-              <h3>2. Conditionals (if/else & switch)</h3>
-              <p>Evaluate condition rating and suitability for exams.</p>
-              <div class="lab-input-group">
-                <label>Select Item Condition:</label>
-                <select id="labConditionSelect">
-                  <option value="NEW">New</option>
-                  <option value="LIKE NEW">Like New</option>
-                  <option value="GOOD">Good</option>
-                  <option value="ACCEPTABLE">Acceptable</option>
-                </select>
-                <button class="lab-run-btn" id="runConditionBtn">Evaluate Condition</button>
-              </div>
-              <div class="code-output" id="labConditionOutput">Output will appear here...</div>
-            </div>
-
-            <!-- Card 3: Loops & Arrays -->
-            <div class="lab-card">
-              <h3>3. Loops & Array Higher-Order Methods</h3>
-              <p>Demonstrates <code>for</code> loop, <code>Array.filter()</code> and <code>Array.reduce()</code>.</p>
-              <div class="lab-input-group">
-                <button class="lab-run-btn" id="runArrayDemoBtn">Run Array Operations</button>
-              </div>
-              <div class="code-output" id="labArrayOutput">Click run to analyze active catalog data...</div>
-            </div>
-
-            <!-- Card 4: DOM Manipulation & Event Handling -->
-            <div class="lab-card">
-              <h3>4. Dynamic DOM Manipulation</h3>
-              <p>Creates, modifies, and attaches live DOM elements dynamically.</p>
-              <div class="lab-input-group">
-                <input type="text" id="domItemText" placeholder="New Quick Note Title...">
-                <button class="lab-run-btn" id="addDomNoteBtn">Append Note to DOM</button>
-              </div>
-              <ul class="dom-demo-list" id="domDemoList">
-                <li>Sample Academic Note 1 (Click to remove)</li>
-              </ul>
-            </div>
-
-          </div>
-        </div>
       </div>
-
     </section>
   </main>
 

@@ -1,6 +1,5 @@
 /* ==============================================================================
-   PEER-TO-PEER CAMPUS MARKETPLACE - CLIENT-SIDE WEB LEARNING STYLESHEET
-   Demonstrating CSS3 Selectors, Custom Properties, Flexbox, CSS Grid & Media Queries
+   PEER-TO-PEER CAMPUS MARKETPLACE
    ============================================================================== */
 
 :root {
@@ -65,6 +64,10 @@ body {
   color: var(--text-secondary);
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.account-controls .secondary-btn {
+  white-space: nowrap;
 }
 
 .auth-page {
@@ -285,55 +288,6 @@ body {
   font-weight: 800;
 }
 
-/* Promo Card matching screenshot */
-.promo-card {
-  background: var(--accent-orange);
-  color: #ffffff;
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.promo-card h4 {
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.promo-card p {
-  font-size: 0.8rem;
-  line-height: 1.35;
-  opacity: 0.95;
-}
-
-.promo-btn {
-  background: #18181b;
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.55rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 0.4rem;
-  transition: var(--transition);
-}
-
-.promo-btn:hover {
-  background: #000000;
-}
-
-.syllabus-checklist {
-  list-style: none;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
 /* ------------------------------------------------------------------------------
    Content Area
    ------------------------------------------------------------------------------ */
@@ -343,6 +297,173 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.panel-open .sidebar {
+  display: none;
+}
+
+.workspace-panel {
+  width: 100%;
+  padding: 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel-heading h2 {
+  margin-bottom: 0.25rem;
+}
+
+.panel-heading p,
+.panel-list-item span,
+.status-banner,
+.optional-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.profile-form {
+  max-width: 600px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.profile-form label {
+  margin-top: 0.3rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profile-form input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.profile-form input[readonly] {
+  opacity: 0.7;
+}
+
+.profile-form .primary-btn {
+  justify-self: start;
+  margin-top: 0.7rem;
+}
+
+.status-banner {
+  width: fit-content;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+}
+
+.panel-message {
+  min-height: 1.4rem;
+  margin: 0.7rem 0;
+  color: var(--accent-light);
+  font-size: 0.85rem;
+}
+
+.my-listings {
+  margin-top: 1.75rem;
+}
+
+.my-listings h3,
+#adminSection > h3 {
+  margin-bottom: 0.75rem;
+}
+
+.panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.panel-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.panel-list-item > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.listing-status {
+  text-transform: capitalize;
+}
+
+.admin-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0 1.75rem;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.metric-card span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.metric-card strong {
+  font-size: 1.4rem;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.verification-actions .primary-btn,
+.danger-btn {
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.danger-btn {
+  background: var(--danger-color);
+}
+
+.verification-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 /* Top Search Controls Bar */
@@ -609,26 +730,26 @@ body {
 /* ------------------------------------------------------------------------------
    Form Styles (Client-Side HTML5 + CSS)
    ------------------------------------------------------------------------------ */
-.form-container, .lab-container {
+.form-container {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.75rem;
 }
 
-.form-header, .lab-header {
+.form-header {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 1rem;
 }
 
-.form-header h2, .lab-header h2 {
+.form-header h2 {
   font-size: 1.35rem;
   color: #ffffff;
   font-weight: 700;
 }
 
-.form-header p, .lab-header p {
+.form-header p {
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
@@ -760,95 +881,6 @@ body {
 }
 
 /* ------------------------------------------------------------------------------
-   JS Lab Playground Cards
-   ------------------------------------------------------------------------------ */
-.lab-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.lab-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.lab-card h3 {
-  font-size: 1rem;
-  color: #ffffff;
-}
-
-.lab-card p {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.lab-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.lab-input-group input, .lab-input-group select {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 0.45rem 0.65rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-}
-
-.lab-run-btn {
-  background: #ffffff;
-  color: #121214;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 0.4rem;
-  align-self: flex-start;
-}
-
-.code-output {
-  background: #09090b;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.75rem;
-  color: #4ade80;
-  min-height: 48px;
-  white-space: pre-wrap;
-}
-
-.dom-demo-list {
-  list-style: none;
-  font-size: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.dom-demo-list li {
-  background: var(--bg-primary);
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.dom-demo-list li:hover {
-  text-decoration: line-through;
-  color: var(--danger-color);
-}
-
-/* ------------------------------------------------------------------------------
    Modal Styles
    ------------------------------------------------------------------------------ */
 .modal {
@@ -913,7 +945,7 @@ body {
   .filter-btn {
     white-space: nowrap;
   }
-  .form-grid, .lab-grid {
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -932,5 +964,11 @@ body {
   .account-controls {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .panel-heading,
+  .panel-list-item {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
