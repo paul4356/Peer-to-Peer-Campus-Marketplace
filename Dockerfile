@@ -12,9 +12,9 @@ RUN apt-get update \
 COPY web-learning/ /var/www/html/
 COPY backend-php/ /var/www/backend-php/
 COPY database/ /var/www/database/
-COPY railway-start.sh /usr/local/bin/railway-start
+COPY render-start.sh /usr/local/bin/render-start
 
-RUN chmod +x /usr/local/bin/railway-start \
+RUN chmod +x /usr/local/bin/render-start \
     && printf '%s\n' \
         '<Directory /var/www/html>' \
         '    AllowOverride All' \
@@ -27,4 +27,4 @@ RUN chmod +x /usr/local/bin/railway-start \
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["sh", "/usr/local/bin/railway-start"]
+CMD ["sh", "/usr/local/bin/render-start"]

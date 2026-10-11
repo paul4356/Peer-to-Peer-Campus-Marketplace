@@ -161,49 +161,35 @@ Double click **`run-app.bat`** in the project root:
 - Checks and starts PHP REST API server on `http://127.0.0.1:8000`.
 - Launches the Java Swing Desktop Client.
 
-## ☁️ Deploy the Web App on Railway
+## ☁️ Deploy on Render
 
-The repository-root `Dockerfile` deploys the static web client and PHP REST API
-as one Railway web service. Railway's MySQL service is a separate service and
-must be added to the project; the Java Swing desktop client and JDBC demo are
-not web services and are not included in this deployment.
+This deploys the browser marketplace and PHP API together. The Java Swing
+desktop client and JDBC demo run locally and are not part of the web service.
 
-1. Create a Railway project from this GitHub repository and leave the service
-   **Root Directory** set to the repository root.
-2. Add a Railway **MySQL** service to the same project.
-3. In the web service's Variables, add references to the MySQL service:
+1. In Render, create a **PostgreSQL** database. Choose the region you plan to
+   use for the web service and wait for the database status to become
+   **Available**.
+2. Create a **Web Service** from this GitHub repository. Choose **Docker**,
+   leave **Root Directory** blank, and select the same region as the database.
+   Render will build the repository-root `Dockerfile`.
+3. In the web service's **Environment** settings, add this variable:
 
-   | Variable | Reference |
+   | Key | Value |
    |---|---|
-   | `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
-   | `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
-   | `DB_NAME` | `${{MySQL.MYSQLDATABASE}}` |
-   | `DB_USER` | `${{MySQL.MYSQLUSER}}` |
-   | `DB_PASS` | `${{MySQL.MYSQLPASSWORD}}` |
+   | `DATABASE_URL` | The PostgreSQL database's **Internal Database URL** copied from its Render **Connect** section |
 
-   If you named your database service something other than `MySQL`, replace
-   `MySQL` in each reference with that service's name.
-4. Deploy. Railway builds the root `Dockerfile`; the site is available at the
-   generated domain, and the API health endpoint is `/api/health`.
+   Keep the URL private. Use the **Internal Database URL**, not the External
+   Database URL, when the web service and database are in the same region.
+4. Save the environment variable and deploy the web service. The API health
+   endpoint is `/api/health`.
 
-The PHP API initializes the tables and seed data on its first connection to an
-empty database. Do not deploy the Java desktop app to Railway; it requires a
-desktop environment.
-
-### Deploy on Render
-
-Create a **PostgreSQL** database in Render, then create a **Web Service** from
-this repository, choose **Docker**, and leave **Root Directory** blank so
-Render uses the root `Dockerfile`. Put both services in the same region.
-In the web service's Environment settings, add `DATABASE_URL` and set its value
-to the database's **Internal Database URL** from the Render PostgreSQL service.
-The app detects PostgreSQL from `DATABASE_URL`, creates its tables, and seeds
-sample accounts and listings on the first connection. Do not use the External
-Database URL for two services in the same Render region.
+On its first database connection, the app creates its PostgreSQL tables and
+sample records. Render's free PostgreSQL databases expire after 30 days; keep
+the database on an active plan to avoid expiration and data deletion.
 
 If the page reports `DB_CONNECTION_ERROR`, check the Render web-service logs,
 confirm `DATABASE_URL` is present and copied in full, and verify that the
-PostgreSQL database is available. The free web service can sleep when idle.
+PostgreSQL database is available. The free web service may sleep when idle.
 
 The web client starts with login and registration forms, validates sessions
 through the PHP API, loads marketplace listings/categories from the database,
@@ -214,7 +200,7 @@ pending until an administrator approves them; only approved students can post.
 
 ## 🔑 Pre-Configured Test Accounts (Viva Presets)
 
-The login screen provides **1-click quick-fill buttons** for viva demonstration:
+These sample accounts are inserted when the app initializes an empty database:
 
 | Role | Account Name | Email | Password | Status / Permissions |
 |---|---|---|---|---|
@@ -276,15 +262,6 @@ Demonstrates:
 
 ---
 
-## 🌐 Syllabus Module 2: HTML/CSS/JavaScript Client-Side Lab
-
-Located in `web-learning/`:
-1. Open `web-learning/index.html` in any web browser.
-2. Features:
-   - **Tab 1: Product Grid** — Responsive CSS Grid matching the project screenshot with live client-side search, category filter buttons, and price sort.
-   - **Tab 2: Item Submission Form** — Form labels, diverse HTML5 input controls (text, email, number, select, radio group, checkbox), and custom JavaScript regex validation.
-   - **Tab 3: JS Code Lab** — Live interactive playground demonstrating variables, arithmetic operators, conditionals (`if/else` and `switch`), higher-order array methods (`filter`, `map`, `reduce`), and dynamic DOM manipulation (`createElement`, `appendChild`, element removal).
-
 ---
 
 ## 📁 Project Directory Structure
@@ -304,7 +281,9 @@ campus-marketplace/
 │       └── Utils/            (Response, Validator)
 ├── database/
 │   ├── schema.sql            (DDL table schemas, foreign keys, indexes)
-│   └── seed.sql              (Realistic fictional campus seed data)
+│   ├── seed.sql              (MySQL sample data)
+│   ├── schema.postgresql.sql (PostgreSQL DDL)
+│   └── seed.postgresql.sql   (PostgreSQL sample data)
 ├── frontend-java/
 │   ├── pom.xml               (Maven project configuration)
 │   └── src/main/java/com/campus/marketplace/
@@ -334,5 +313,6 @@ campus-marketplace/
 ├── start-backend.bat         (Backend starter)
 ├── run-frontend.bat          (Desktop client launcher)
 ├── run-jdbc-demo.bat         (JDBC demo launcher)
+├── render-start.sh           (Render Docker web-service startup)
 └── README.md
 ```
