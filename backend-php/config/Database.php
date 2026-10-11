@@ -14,31 +14,44 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$instance === null) {
-            $dsn = sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-                Config::dbHost(),
-                Config::dbPort(),
-                Config::dbName()
-            );
+            $driver = Config::dbDriver();
+            if (!in_array($driver, ['pgsql', 'mysql'], true)) {
+                Response::error('Unsupported database driver. Set DB_DRIVER to pgsql or mysql.', 500);
+            }
 
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ];
 
             try {
-                if (!Config::hasExternalDatabaseConfig()) {
+                $url = Config::databaseUrl();
+                if ($url !== '') {
+                    if ($driver !== 'pgsql') {
+                        Response::error('DATABASE_URL is supported for PostgreSQL. Set DB_DRIVER=mysql to use MySQL variables.', 500);
+                    }
+                    [$dsn, $username, $password] = self::postgresSettingsFromUrl($url);
+                } else {
+                    $dsn = self::dsnFromEnvironment($driver);
+                    $username = Config::dbUser();
+                    $password = Config::dbPass();
+                }
+
+                if ($driver === 'mysql' && !Config::hasExternalDatabaseConfig()) {
                     self::ensureDatabaseExists();
                 }
 
-                self::$instance = new PDO($dsn, Config::dbUser(), Config::dbPass(), $options);
-                self::ensureRequiredSchema(self::$instance);
+                self::$instance = new PDO($dsn, $username, $password, $options);
+                if ($driver === 'pgsql') {
+                    self::ensurePostgresSchema(self::$instance);
+                } else {
+                    self::ensureMySqlSchema(self::$instance);
+                }
             } catch (PDOException $e) {
                 error_log('Marketplace database connection failed: ' . $e->getMessage());
                 Response::error(
-                    'Cannot connect to MySQL. Check that DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASS are set to a reachable MySQL server. Do not use localhost or 127.0.0.1 for a separately hosted database.',
+                    'Cannot connect to the database. Check the Render PostgreSQL DATABASE_URL or configure the database connection variables for a reachable database.',
                     500,
                     ['code' => 'DB_CONNECTION_ERROR']
                 );
@@ -46,6 +59,58 @@ class Database
         }
 
         return self::$instance;
+    }
+
+    /**
+     * @return array{string, string, string}
+     */
+    private static function postgresSettingsFromUrl(string $url): array
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['host'], $parts['path'])) {
+            throw new \InvalidArgumentException('DATABASE_URL is not a valid PostgreSQL connection URL.');
+        }
+
+        $database = ltrim($parts['path'], '/');
+        if ($database === '') {
+            throw new \InvalidArgumentException('DATABASE_URL does not include a database name.');
+        }
+
+        parse_str($parts['query'] ?? '', $query);
+        $sslMode = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($query['sslmode'] ?? 'prefer'));
+        $dsn = sprintf(
+            'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s',
+            $parts['host'],
+            isset($parts['port']) ? (int)$parts['port'] : 5432,
+            rawurldecode($database),
+            $sslMode !== '' ? $sslMode : 'prefer'
+        );
+
+        return [
+            $dsn,
+            isset($parts['user']) ? rawurldecode($parts['user']) : '',
+            isset($parts['pass']) ? rawurldecode($parts['pass']) : ''
+        ];
+    }
+
+    private static function dsnFromEnvironment(string $driver): string
+    {
+        if ($driver === 'pgsql') {
+            return sprintf(
+                'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s',
+                Config::dbHost(),
+                Config::dbPort(),
+                Config::dbName(),
+                getenv('DB_SSLMODE') ?: 'prefer'
+            );
+        }
+
+        return sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+            Config::dbHost(),
+            Config::dbPort(),
+            Config::dbName()
+        );
     }
 
     private static function ensureDatabaseExists(): void
@@ -64,7 +129,18 @@ class Database
         ));
     }
 
-    private static function ensureRequiredSchema(PDO $pdo): void
+    private static function ensurePostgresSchema(PDO $pdo): void
+    {
+        self::applySqlFile($pdo, dirname(__DIR__, 2) . '/database/schema.postgresql.sql');
+
+        $categoryCount = (int)$pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
+        $userCount = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        if ($categoryCount === 0 || $userCount === 0) {
+            self::applySqlFile($pdo, dirname(__DIR__, 2) . '/database/seed.postgresql.sql');
+        }
+    }
+
+    private static function ensureMySqlSchema(PDO $pdo): void
     {
         $userTableExists = $pdo->query("SHOW TABLES LIKE 'users'")->fetch();
         if ($userTableExists === false) {

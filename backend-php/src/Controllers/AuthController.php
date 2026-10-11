@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Config\Database;
+use App\Config\Config;
 use App\Middleware\AuthMiddleware;
 use App\Utils\Response;
 use App\Utils\Validator;
@@ -56,7 +57,8 @@ class AuthController
             INSERT INTO users 
             (student_id, full_name, email, password_hash, phone, department, year_of_study, role, verification_status, api_token)
             VALUES 
-            (:student_id, :full_name, :email, :password_hash, :phone, :department, :year_of_study, "student", "pending", :token)
+            (:student_id, :full_name, :email, :password_hash, :phone, :department, :year_of_study, \'student\', \'pending\', :token)
+            ' . (Config::dbDriver() === 'pgsql' ? 'RETURNING id' : '') . '
         ');
 
         $stmt->execute([
@@ -70,7 +72,9 @@ class AuthController
             'token' => $token
         ]);
 
-        $userId = (int)$pdo->lastInsertId();
+        $userId = Config::dbDriver() === 'pgsql'
+            ? (int)$stmt->fetchColumn()
+            : (int)$pdo->lastInsertId();
 
         Response::json([
             'user' => [

@@ -19,17 +19,17 @@ class AdminController
         $usersStats = $pdo->query('
             SELECT 
                 COUNT(*) AS total_users,
-                COUNT(CASE WHEN role = "student" AND verification_status = "approved" THEN 1 END) AS approved_students,
-                COUNT(CASE WHEN role = "student" AND verification_status = "pending" THEN 1 END) AS pending_verifications,
-                COUNT(CASE WHEN role = "student" AND verification_status = "rejected" THEN 1 END) AS rejected_verifications
+                COUNT(CASE WHEN role = \'student\' AND verification_status = \'approved\' THEN 1 END) AS approved_students,
+                COUNT(CASE WHEN role = \'student\' AND verification_status = \'pending\' THEN 1 END) AS pending_verifications,
+                COUNT(CASE WHEN role = \'student\' AND verification_status = \'rejected\' THEN 1 END) AS rejected_verifications
             FROM users
         ')->fetch();
 
         $listingsStats = $pdo->query('
             SELECT 
                 COUNT(*) AS total_listings,
-                COUNT(CASE WHEN status = "available" THEN 1 END) AS available_listings,
-                COUNT(CASE WHEN status = "sold" THEN 1 END) AS sold_listings,
+                COUNT(CASE WHEN status = \'available\' THEN 1 END) AS available_listings,
+                COUNT(CASE WHEN status = \'sold\' THEN 1 END) AS sold_listings,
                 COALESCE(SUM(views_count), 0) AS total_views
             FROM listings
         ')->fetch();
@@ -37,7 +37,7 @@ class AdminController
         $reportsStats = $pdo->query('
             SELECT 
                 COUNT(*) AS total_reports,
-                COUNT(CASE WHEN status = "pending" THEN 1 END) AS pending_reports
+                COUNT(CASE WHEN status = \'pending\' THEN 1 END) AS pending_reports
             FROM reports
         ')->fetch();
 
@@ -66,7 +66,7 @@ class AdminController
             SELECT id, student_id, full_name, email, phone, department, year_of_study, 
                    verification_status, created_at
             FROM users
-            WHERE role = "student" AND verification_status = "pending"
+            WHERE role = \'student\' AND verification_status = \'pending\'
             ORDER BY created_at ASC
         ');
         $rows = $stmt->fetchAll();
@@ -87,7 +87,7 @@ class AdminController
         $pdo = Database::getConnection();
 
         // Check user exists
-        $userStmt = $pdo->prepare('SELECT id, full_name, student_id, verification_status FROM users WHERE id = :id AND role = "student" LIMIT 1');
+        $userStmt = $pdo->prepare("SELECT id, full_name, student_id, verification_status FROM users WHERE id = :id AND role = 'student' LIMIT 1");
         $userStmt->execute(['id' => $userId]);
         $targetUser = $userStmt->fetch();
 
@@ -98,7 +98,8 @@ class AdminController
         $stmt = $pdo->prepare('
             UPDATE users 
             SET verification_status = :status, 
-                rejection_reason = :reason
+                rejection_reason = :reason,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = :id
         ');
         $stmt->execute([
@@ -110,7 +111,7 @@ class AdminController
         // Audit log entry
         $audit = $pdo->prepare('
             INSERT INTO admin_audit_logs (admin_id, action, target_type, target_id, details, ip_address)
-            VALUES (:admin_id, :action, "user", :target_id, :details, :ip)
+            VALUES (:admin_id, :action, \'user\', :target_id, :details, :ip)
         ');
         $actionName = $status === 'approved' ? 'APPROVE_STUDENT' : 'REJECT_STUDENT';
         $details = "Admin updated status of {$targetUser['full_name']} ({$targetUser['student_id']}) to {$status}." . ($reason ? " Reason: {$reason}" : '');
@@ -144,8 +145,10 @@ class AdminController
         $params = [];
 
         if ($query !== '') {
-            $where[] = '(full_name LIKE :q OR email LIKE :q OR student_id LIKE :q)';
-            $params['q'] = "%{$query}%";
+            $where[] = '(full_name LIKE :full_name_query OR email LIKE :email_query OR student_id LIKE :student_id_query)';
+            $params['full_name_query'] = "%{$query}%";
+            $params['email_query'] = "%{$query}%";
+            $params['student_id_query'] = "%{$query}%";
         }
 
         if ($role !== '') {

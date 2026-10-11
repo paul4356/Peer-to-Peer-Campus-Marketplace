@@ -37,7 +37,7 @@ class ReportController
 
         $stmt = $pdo->prepare('
             INSERT INTO reports (reporter_id, listing_id, reason, details, status)
-            VALUES (:reporter_id, :listing_id, :reason, :details, "pending")
+            VALUES (:reporter_id, :listing_id, :reason, :details, \'pending\')
         ');
         $stmt->execute([
             'reporter_id' => $user['id'],

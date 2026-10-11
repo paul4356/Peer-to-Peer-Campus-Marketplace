@@ -19,10 +19,10 @@ class SellerController
         $statsStmt = $pdo->prepare('
             SELECT 
                 COUNT(*) AS total_listings,
-                COUNT(CASE WHEN status = "available" THEN 1 END) AS active_listings,
-                COUNT(CASE WHEN status = "sold" THEN 1 END) AS sold_listings,
-                COUNT(CASE WHEN status = "reserved" THEN 1 END) AS reserved_listings,
-                COALESCE(SUM(CASE WHEN status = "sold" THEN price ELSE 0 END), 0) AS total_revenue,
+                COUNT(CASE WHEN status = \'available\' THEN 1 END) AS active_listings,
+                COUNT(CASE WHEN status = \'sold\' THEN 1 END) AS sold_listings,
+                COUNT(CASE WHEN status = \'reserved\' THEN 1 END) AS reserved_listings,
+                COALESCE(SUM(CASE WHEN status = \'sold\' THEN price ELSE 0 END), 0) AS total_revenue,
                 COALESCE(SUM(views_count), 0) AS total_views
             FROM listings
             WHERE seller_id = :seller_id

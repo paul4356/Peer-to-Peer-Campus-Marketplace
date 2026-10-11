@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Config\Database;
+use App\Config\Config;
 use App\Middleware\AuthMiddleware;
 use App\Utils\Response;
 use App\Utils\Validator;
@@ -228,7 +229,8 @@ class ListingController
             INSERT INTO listings 
             (seller_id, category_id, title, description, price, condition_state, image_url, status, contact_preference)
             VALUES 
-            (:seller_id, :category_id, :title, :description, :price, :condition_state, :image_url, "available", :contact_preference)
+            (:seller_id, :category_id, :title, :description, :price, :condition_state, :image_url, \'available\', :contact_preference)
+            ' . (Config::dbDriver() === 'pgsql' ? 'RETURNING id' : '') . '
         ');
 
         $imageUrl = trim((string)($data['image_url'] ?? 'assets/items/default_item.png'));
@@ -247,7 +249,9 @@ class ListingController
             'contact_preference' => trim((string)($data['contact_preference'] ?? 'chat'))
         ]);
 
-        $newId = (int)$pdo->lastInsertId();
+        $newId = Config::dbDriver() === 'pgsql'
+            ? (int)$stmt->fetchColumn()
+            : (int)$pdo->lastInsertId();
 
         Response::json(['id' => $newId, 'message' => 'Listing published successfully!'], 201, 'Listing created.');
     }
@@ -287,7 +291,8 @@ class ListingController
                 category_id = :category_id, 
                 condition_state = :condition_state,
                 image_url = :image_url,
-                contact_preference = :contact_preference
+                contact_preference = :contact_preference,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = :id
         ');
 
@@ -355,7 +360,7 @@ class ListingController
             Response::error('Forbidden: You can only update the status of your own listings.', 403);
         }
 
-        $stmt = $pdo->prepare('UPDATE listings SET status = :status WHERE id = :id');
+        $stmt = $pdo->prepare('UPDATE listings SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id');
         $stmt->execute(['status' => $status, 'id' => $id]);
 
         Response::json(['id' => $id, 'status' => $status], 200, 'Listing status updated to ' . $status . '.');

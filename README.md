@@ -35,7 +35,7 @@ The platform adheres to a clean **3-Tier Client-Server Architecture**:
                             |
 +---------------------------v---------------------------+
 |                    3. DATA TIER                       |
-|               MySQL / MariaDB 10.4+                   |
+|        MySQL / MariaDB or PostgreSQL                    |
 | (users, categories, listings, wishlist, reports, logs)|
 +-------------------------------------------------------+
 ```
@@ -142,7 +142,7 @@ erDiagram
 
 - **Desktop GUI:** Java 17+ / Java 26 (Swing, FlatLaf Dark Theme, Non-blocking `SwingWorker`)
 - **Backend API:** PHP 8+ (PSR-4 routing, PDO, Prepared Statements, Bcrypt)
-- **Database:** MySQL / MariaDB (InnoDB, Foreign Keys, Indexes)
+- **Database:** MySQL / MariaDB or PostgreSQL (Foreign Keys, Indexes)
 - **Build Tool:** Apache Maven 3.9+
 - **Syllabus Module 1 (JDBC):** MySQL Connector/J 8.3+, try-with-resources CRUD
 - **Syllabus Module 2 (Web):** Semantic HTML5, CSS Grid, Flexbox, Vanilla JavaScript ES6+
@@ -192,16 +192,18 @@ desktop environment.
 
 ### Deploy on Render
 
-Create a **Web Service** from this repository, choose **Docker**, and leave
-**Root Directory** blank so Render uses the root `Dockerfile`. Configure
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASS` with connection
-details for a MySQL database reachable from Render. Render's free web service
-can sleep when idle; it does not provide the MySQL database required by this
-application. Do not set `DB_HOST` to `localhost` or `127.0.0.1`; those point
-back to the web-service container, not to a separate database. If the page
-reports `DB_CONNECTION_ERROR` or `SQLSTATE[HY000] [2002] Connection refused`,
-check the Render service logs and verify all five database variables with your
-MySQL provider. The MySQL host must accept connections from Render.
+Create a **PostgreSQL** database in Render, then create a **Web Service** from
+this repository, choose **Docker**, and leave **Root Directory** blank so
+Render uses the root `Dockerfile`. Put both services in the same region.
+In the web service's Environment settings, add `DATABASE_URL` and set its value
+to the database's **Internal Database URL** from the Render PostgreSQL service.
+The app detects PostgreSQL from `DATABASE_URL`, creates its tables, and seeds
+sample accounts and listings on the first connection. Do not use the External
+Database URL for two services in the same Render region.
+
+If the page reports `DB_CONNECTION_ERROR`, check the Render web-service logs,
+confirm `DATABASE_URL` is present and copied in full, and verify that the
+PostgreSQL database is available. The free web service can sleep when idle.
 
 The web client starts with login and registration forms, validates sessions
 through the PHP API, loads marketplace listings/categories from the database,

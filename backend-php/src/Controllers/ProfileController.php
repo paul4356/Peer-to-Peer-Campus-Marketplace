@@ -28,7 +28,7 @@ class ProfileController
             'id' => $user['id']
         ];
 
-        $sql = 'UPDATE users SET full_name = :full_name, phone = :phone, department = :department, year_of_study = :year_of_study';
+        $sql = 'UPDATE users SET full_name = :full_name, phone = :phone, department = :department, year_of_study = :year_of_study, updated_at = CURRENT_TIMESTAMP';
 
         // Password change if provided
         if (!empty($data['password'])) {

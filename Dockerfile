@@ -1,6 +1,9 @@
 FROM php:8.3-apache
 
-RUN docker-php-ext-install pdo_mysql \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql \
+    && rm -rf /var/lib/apt/lists/* \
     && for module in mpm_event mpm_worker; do \
         if [ -e "/etc/apache2/mods-enabled/${module}.load" ]; then a2dismod "$module"; fi; \
     done \
