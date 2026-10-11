@@ -178,6 +178,54 @@ class AdminController
         Response::json(['users' => $users], 200, 'User list retrieved.');
     }
 
+    public function deleteStudent(int $userId): void
+    {
+        $admin = AuthMiddleware::requireAdmin();
+        $pdo = Database::getConnection();
+
+        $userStmt = $pdo->prepare("
+            SELECT id, student_id, full_name
+            FROM users
+            WHERE id = :id AND role = 'student'
+            LIMIT 1
+        ");
+        $userStmt->execute(['id' => $userId]);
+        $student = $userStmt->fetch();
+
+        if (!$student) {
+            Response::error('Student account not found.', 404);
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $audit = $pdo->prepare('
+                INSERT INTO admin_audit_logs (admin_id, action, target_type, target_id, details, ip_address)
+                VALUES (:admin_id, \'DELETE_STUDENT\', \'user\', :target_id, :details, :ip)
+            ');
+            $audit->execute([
+                'admin_id' => $admin['id'],
+                'target_id' => $userId,
+                'details' => "Deleted student {$student['full_name']} ({$student['student_id']}); related listings and records were removed.",
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+            ]);
+
+            $delete = $pdo->prepare("DELETE FROM users WHERE id = :id AND role = 'student'");
+            $delete->execute(['id' => $userId]);
+            if ($delete->rowCount() !== 1) {
+                throw new \RuntimeException('Student account was not deleted.');
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $error) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        Response::json(['user_id' => $userId], 200, 'Student account and related records deleted.');
+    }
+
     public function reports(): void
     {
         AuthMiddleware::requireAdmin();
@@ -200,6 +248,55 @@ class AdminController
         $reports = $stmt->fetchAll();
 
         Response::json(['reports' => $reports], 200, 'Listing reports retrieved.');
+    }
+
+    public function updateReport(int $reportId, array $data): void
+    {
+        $admin = AuthMiddleware::requireAdmin();
+        $status = trim((string)($data['status'] ?? ''));
+        if (!in_array($status, ['pending', 'reviewed', 'dismissed'], true)) {
+            Response::error('Status must be pending, reviewed, or dismissed.', 422);
+        }
+
+        $pdo = Database::getConnection();
+        $reportStmt = $pdo->prepare('SELECT id, status FROM reports WHERE id = :id LIMIT 1');
+        $reportStmt->execute(['id' => $reportId]);
+        $report = $reportStmt->fetch();
+        if (!$report) {
+            Response::error('Report not found.', 404);
+        }
+
+        $resolvedAt = $status === 'pending' ? 'NULL' : 'CURRENT_TIMESTAMP';
+        $pdo->beginTransaction();
+        try {
+            $update = $pdo->prepare("
+                UPDATE reports
+                SET status = :status, resolved_at = {$resolvedAt}
+                WHERE id = :id
+            ");
+            $update->execute(['status' => $status, 'id' => $reportId]);
+
+            $audit = $pdo->prepare('
+                INSERT INTO admin_audit_logs (admin_id, action, target_type, target_id, details, ip_address)
+                VALUES (:admin_id, :action, \'report\', :target_id, :details, :ip)
+            ');
+            $audit->execute([
+                'admin_id' => $admin['id'],
+                'action' => 'REPORT_' . strtoupper($status),
+                'target_id' => $reportId,
+                'details' => "Admin changed report {$reportId} from {$report['status']} to {$status}.",
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $error) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        Response::json(['report_id' => $reportId, 'status' => $status], 200, 'Report status updated.');
     }
 
     public function auditLogs(): void

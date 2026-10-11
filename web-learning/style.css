@@ -415,6 +415,65 @@ body {
   text-transform: capitalize;
 }
 
+.admin-section {
+  margin-top: 2rem;
+}
+
+.admin-section h3 {
+  margin-bottom: 0.5rem;
+}
+
+.admin-section-help {
+  margin-bottom: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.admin-record,
+.report-record {
+  align-items: flex-start;
+}
+
+.admin-record > div:first-child,
+.report-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.report-details > span:not(.report-status) {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.report-status {
+  width: fit-content;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+  text-transform: capitalize;
+}
+
+.status-pending {
+  color: var(--badge-acceptable-text);
+}
+
+.status-reviewed {
+  color: var(--badge-good-text);
+}
+
+.status-dismissed {
+  color: var(--text-secondary);
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .admin-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

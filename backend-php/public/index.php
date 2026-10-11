@@ -195,12 +195,20 @@ if (preg_match('#^/api/admin/users/(\d+)/verification$#', $path, $matches) && ($
     (new AdminController())->updateVerification((int)$matches[1], $body);
 }
 
+if (preg_match('#^/api/admin/users/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+    (new AdminController())->deleteStudent((int)$matches[1]);
+}
+
 if ($path === '/api/admin/users' && $method === 'GET') {
     (new AdminController())->users();
 }
 
 if ($path === '/api/admin/reports' && $method === 'GET') {
     (new AdminController())->reports();
+}
+
+if (preg_match('#^/api/admin/reports/(\d+)$#', $path, $matches) && ($method === 'PATCH' || $method === 'POST')) {
+    (new AdminController())->updateReport((int)$matches[1], $body);
 }
 
 if ($path === '/api/admin/audit-logs' && $method === 'GET') {

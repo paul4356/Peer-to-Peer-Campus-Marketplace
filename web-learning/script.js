@@ -155,13 +155,16 @@ async function loadProfile() {
 
 async function loadAdminDashboard() {
   if (!currentUser || currentUser.role !== 'admin') return;
-  const [dashboard, verificationData] = await Promise.all([
+  const [dashboard, verificationData, studentData, reportData] = await Promise.all([
     apiRequest('/api/admin/dashboard'),
-    apiRequest('/api/admin/verifications')
+    apiRequest('/api/admin/verifications'),
+    apiRequest('/api/admin/users?role=student'),
+    apiRequest('/api/admin/reports')
   ]);
   const metrics = dashboard.metrics || {};
   document.getElementById('adminMetrics').innerHTML = [
-    ['Students', metrics.total_users],
+    ['Student accounts', Number(metrics.approved_students || 0) +
+      Number(metrics.pending_verifications || 0) + Number(metrics.rejected_verifications || 0)],
     ['Pending approvals', metrics.pending_verifications],
     ['Listings', metrics.total_listings],
     ['Reports', metrics.total_reports]
@@ -185,6 +188,39 @@ async function loadAdminDashboard() {
         </div>
       </article>`).join('')
     : '<p>There are no student accounts waiting for approval.</p>';
+
+  const students = studentData.users || [];
+  const studentList = document.getElementById('adminStudents');
+  studentList.innerHTML = students.length
+    ? students.map(student => `
+      <article class="panel-list-item admin-record">
+        <div>
+          <strong>${escapeHtml(student.full_name)}</strong>
+          <span>${escapeHtml(student.student_id)} · ${escapeHtml(student.email)}</span>
+          <span>${escapeHtml(student.department || 'Department not provided')} · ${escapeHtml(student.verification_status)}</span>
+        </div>
+        <button type="button" class="danger-btn" data-delete-student="${escapeHtml(student.id)}">Remove student</button>
+      </article>`).join('')
+    : '<p>There are no student accounts.</p>';
+
+  const reports = reportData.reports || [];
+  const reportList = document.getElementById('adminReports');
+  reportList.innerHTML = reports.length
+    ? reports.map(report => `
+      <article class="panel-list-item report-record">
+        <div class="report-details">
+          <strong>${escapeHtml(report.reason)}</strong>
+          <span>Item: ${escapeHtml(report.listing_title)} · Seller: ${escapeHtml(report.seller_name)}</span>
+          <span>Reported by ${escapeHtml(report.reporter_name)} · ${escapeHtml(report.reporter_email)}</span>
+          <span>${escapeHtml(report.details || 'No additional details provided.')}</span>
+          <span class="report-status status-${escapeHtml(report.status)}">${escapeHtml(report.status)}</span>
+        </div>
+        <div class="report-actions">
+          <button type="button" class="primary-btn" data-report-status="reviewed" data-report-id="${escapeHtml(report.id)}" ${report.status === 'reviewed' ? 'disabled' : ''}>Mark reviewed</button>
+          <button type="button" class="danger-btn" data-report-status="dismissed" data-report-id="${escapeHtml(report.id)}" ${report.status === 'dismissed' ? 'disabled' : ''}>Dismiss</button>
+        </div>
+      </article>`).join('')
+    : '<p>There are no listing reports.</p>';
 }
 
 document.getElementById('profileBtn').addEventListener('click', () => showWorkspace('profile'));
@@ -238,6 +274,51 @@ document.getElementById('pendingVerifications').addEventListener('click', async 
       })
     });
     message.textContent = `Student ${button.dataset.verification} successfully.`;
+    await loadAdminDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+    button.disabled = false;
+  }
+});
+
+document.getElementById('adminStudents').addEventListener('click', async event => {
+  const button = event.target.closest('button[data-delete-student]');
+  if (!button) return;
+
+  const studentRow = button.closest('.admin-record');
+  const studentName = studentRow.querySelector('strong').textContent;
+  const studentId = studentRow.querySelector('span').textContent.split(' · ')[0];
+  if (!confirm(`Permanently remove ${studentName} (${studentId})? Their listings, wishlists, and reports will also be deleted.`)) {
+    return;
+  }
+
+  button.disabled = true;
+  const message = document.getElementById('adminMessage');
+  message.textContent = '';
+  try {
+    await apiRequest(`/api/admin/users/${button.dataset.deleteStudent}`, { method: 'DELETE' });
+    message.textContent = `Student ${studentId} and their related records were removed.`;
+    await loadAdminDashboard();
+    await loadMarketplace();
+  } catch (error) {
+    message.textContent = error.message;
+    button.disabled = false;
+  }
+});
+
+document.getElementById('adminReports').addEventListener('click', async event => {
+  const button = event.target.closest('button[data-report-status]');
+  if (!button) return;
+
+  button.disabled = true;
+  const message = document.getElementById('adminMessage');
+  message.textContent = '';
+  try {
+    await apiRequest(`/api/admin/reports/${button.dataset.reportId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: button.dataset.reportStatus })
+    });
+    message.textContent = `Report marked ${button.dataset.reportStatus}.`;
     await loadAdminDashboard();
   } catch (error) {
     message.textContent = error.message;

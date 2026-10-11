@@ -113,7 +113,8 @@ test('4. Reject login with invalid password', function () {
 
 // 5. Admin Login
 $adminToken = null;
-test('5. Admin Login (Prof. Sharma)', function () use (&$adminToken) {
+$adminId = null;
+test('5. Admin Login (Prof. Sharma)', function () use (&$adminToken, &$adminId) {
     $res = request('POST', '/api/auth/login', [
         'email' => 'admin@campus.edu',
         'password' => 'Admin@123'
@@ -121,6 +122,7 @@ test('5. Admin Login (Prof. Sharma)', function () use (&$adminToken) {
     assertEq($res['status'], 200);
     assertEq($res['body']['data']['user']['role'], 'admin');
     $adminToken = $res['body']['data']['token'];
+    $adminId = $res['body']['data']['user']['id'];
 });
 
 // 6. Register a new student (starts as pending)
@@ -248,22 +250,90 @@ test('15. Wishlist remove item', function () use ($studentToken, $createdListing
     assertEq($res['status'], 200);
 });
 
-// 16. Admin Dashboard access and Student restriction
-test('16. Student cannot access Admin Dashboard (RBAC check)', function () use ($studentToken) {
+$testReportReason = 'Smoke test report ' . bin2hex(random_bytes(4));
+test('16. Admin can review and dismiss submitted listing reports', function () use ($studentToken, $adminToken, $createdListingId, $testReportReason) {
+    $created = request('POST', '/api/reports', [
+        'listing_id' => $createdListingId,
+        'reason' => $testReportReason,
+        'details' => 'Automated API moderation workflow test.'
+    ], $studentToken);
+    assertEq($created['status'], 201);
+
+    $listed = request('GET', '/api/admin/reports', null, $adminToken);
+    assertEq($listed['status'], 200);
+    $reportId = null;
+    foreach ($listed['body']['data']['reports'] as $report) {
+        if ($report['reason'] === $testReportReason) {
+            $reportId = $report['id'];
+            break;
+        }
+    }
+    assertTrue($reportId !== null, 'The new report must appear in the admin report list');
+
+    $studentUpdate = request('PATCH', "/api/admin/reports/{$reportId}", ['status' => 'reviewed'], $studentToken);
+    assertEq($studentUpdate['status'], 403, 'Students must not be able to moderate reports');
+
+    $reviewed = request('PATCH', "/api/admin/reports/{$reportId}", ['status' => 'reviewed'], $adminToken);
+    assertEq($reviewed['status'], 200);
+    assertEq($reviewed['body']['data']['status'], 'reviewed');
+
+    $dismissed = request('PATCH', "/api/admin/reports/{$reportId}", ['status' => 'dismissed'], $adminToken);
+    assertEq($dismissed['status'], 200);
+    assertEq($dismissed['body']['data']['status'], 'dismissed');
+});
+
+// 17. Admin Dashboard access and Student restriction
+test('17. Student cannot access Admin Dashboard (RBAC check)', function () use ($studentToken) {
     $res = request('GET', '/api/admin/dashboard', null, $studentToken);
     assertEq($res['status'], 403);
 });
 
-test('17. Admin successfully accesses Admin Dashboard', function () use ($adminToken) {
+test('18. Admin successfully accesses Admin Dashboard', function () use ($adminToken) {
     $res = request('GET', '/api/admin/dashboard', null, $adminToken);
     assertEq($res['status'], 200);
     assertTrue(isset($res['body']['data']['metrics']['total_users']));
 });
 
-// 18. Clean up test listing
-test('18. Owner deletes listing', function () use ($newStudentToken, $createdListingId) {
+// 19. Clean up test listing
+test('19. Owner deletes listing', function () use ($newStudentToken, $createdListingId) {
     $res = request('DELETE', "/api/listings/{$createdListingId}", null, $newStudentToken);
     assertEq($res['status'], 200);
+});
+
+// 20. Admin can list student accounts without exposing admin users to deletion
+test('20. Admin can list student accounts', function () use ($adminToken, $newStudentId) {
+    $res = request('GET', '/api/admin/users?role=student', null, $adminToken);
+    assertEq($res['status'], 200);
+
+    $foundStudent = false;
+    foreach ($res['body']['data']['users'] as $user) {
+        assertEq($user['role'], 'student');
+        if ((int)$user['id'] === (int)$newStudentId) {
+            $foundStudent = true;
+        }
+    }
+    assertTrue($foundStudent, 'The registered test student must be listed');
+});
+
+// 21. Students cannot remove accounts
+test('21. Student cannot use admin account deletion', function () use ($studentToken, $newStudentId) {
+    $res = request('DELETE', "/api/admin/users/{$newStudentId}", null, $studentToken);
+    assertEq($res['status'], 403);
+});
+
+// 22. Admin cannot remove the administrator account through the student endpoint
+test('22. Student deletion endpoint preserves admin accounts', function () use ($adminToken, $adminId) {
+    $res = request('DELETE', "/api/admin/users/{$adminId}", null, $adminToken);
+    assertEq($res['status'], 404);
+});
+
+// 23. Admin removes a student account and cascaded records
+test('23. Admin can remove a student account', function () use ($adminToken, $newStudentId) {
+    $res = request('DELETE', "/api/admin/users/{$newStudentId}", null, $adminToken);
+    assertEq($res['status'], 200);
+
+    $adminRes = request('GET', '/api/admin/dashboard', null, $adminToken);
+    assertEq($adminRes['status'], 200, 'The admin account must remain active');
 });
 
 echo "\n--------------------------------------------------------------------\n";
