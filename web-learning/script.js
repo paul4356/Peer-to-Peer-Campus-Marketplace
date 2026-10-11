@@ -11,75 +11,110 @@
  * ==============================================================================
  */
 
-// Initial Dataset directly representing the items shown in the user's project screenshot
-const initialCatalog = [
-  {
-    id: 1,
-    title: 'CASIO SCIENTIFIC CALCULATOR',
-    category: 'ELECTRONICS',
-    price: 600,
-    condition: 'GOOD',
-    seller: 'ATHARVA GOKHALE',
-    description: 'Natural textbook display fx-991EX. Dual power solar and battery. Used for Sem 1 and 2 engineering math.',
-    image: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=500&auto=format&fit=crop&q=60'
-  },
-  {
-    id: 2,
-    title: 'LAB COAT',
-    category: 'ACCESSORIES',
-    price: 160,
-    condition: 'GOOD',
-    seller: 'JANHAVI',
-    description: 'Navy blue workshop apron size 38. Thick cotton material, 3 pockets intact, clean and washed.',
-    image: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=500&auto=format&fit=crop&q=60'
-  },
-  {
-    id: 3,
-    title: 'ROLLER SCALE - 15 CM',
-    category: 'ACCESSORIES',
-    price: 19,
-    condition: 'ACCEPTABLE',
-    seller: 'YASH',
-    description: '15 cm parallel rolling ruler for engineering graphics drawings and isometric projections.',
-    image: 'https://images.unsplash.com/photo-1585336261026-6d65451e5927?w=500&auto=format&fit=crop&q=60'
-  },
-  {
-    id: 4,
-    title: 'TOOLS FOR ENGINEERING GRAPHICS (SET)',
-    category: 'EG MATERIALS',
-    price: 235,
-    condition: 'NEW',
-    seller: 'YASH',
-    description: 'Complete EG drawing kit: Set squares, protractor, French curves, mini drafter compass.',
-    image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500&auto=format&fit=crop&q=60'
-  },
-  {
-    id: 5,
-    title: 'MAPED MECHANICAL ROUNDER FOR ENGINEERING GRAPHICS',
-    category: 'EG MATERIALS',
-    price: 70,
-    condition: 'GOOD',
-    seller: 'YASH',
-    description: 'High precision compass/rounder with gear wheel adjustment screw for accurate circle drafting.',
-    image: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop&q=60'
-  },
-  {
-    id: 6,
-    title: 'ROLLER SCALE - 15 CM (BOX PACKED)',
-    category: 'ACCESSORIES',
-    price: 30,
-    condition: 'LIKE NEW',
-    seller: 'YASH',
-    description: 'Clear acrylic roller ruler with box. Used only twice for tutorial assignments.',
-    image: 'https://images.unsplash.com/photo-1585336261026-6d65451e5927?w=500&auto=format&fit=crop&q=60'
-  }
-];
-
 // Active State Variables
-let currentProducts = [...initialCatalog];
+let currentProducts = [];
+let marketplaceCategories = [];
+let authToken = sessionStorage.getItem('marketplaceToken');
 let selectedCategory = 'ALL';
 let searchQuery = '';
 let currentSort = 'featured';
+
+async function apiRequest(path, options = {}) {
+  const headers = { Accept: 'application/json', ...(options.headers || {}) };
+  if (options.body) headers['Content-Type'] = 'application/json';
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+
+  const response = await fetch(path, { ...options, headers });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload || payload.success !== true) {
+    const error = new Error(payload?.error || payload?.message || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload.data;
+}
+
+function setAuthMessage(message, isSuccess = false) {
+  const messageEl = document.getElementById('authMessage');
+  messageEl.textContent = message;
+  messageEl.classList.toggle('success', isSuccess);
+}
+
+function showAuthenticatedApp(user) {
+  document.getElementById('authPage').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+  document.getElementById('accountControls').classList.remove('hidden');
+  document.getElementById('accountName').textContent = `${user.full_name} · ${user.verification_status}`;
+  loadMarketplace().catch(error => {
+    document.getElementById('itemCountLabel').textContent = `Could not load marketplace: ${error.message}`;
+  });
+}
+
+function showAuthentication() {
+  document.getElementById('authPage').classList.remove('hidden');
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('accountControls').classList.add('hidden');
+  registerForm.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+  document.getElementById('authTitle').textContent = 'Welcome back';
+  document.getElementById('authSubtitle').textContent = 'Sign in to browse and trade academic essentials with your campus community.';
+}
+
+async function loadMarketplace() {
+  const [categoryData, listingData] = await Promise.all([
+    apiRequest('/api/categories'),
+    apiRequest('/api/listings?limit=50&sort=newest')
+  ]);
+  marketplaceCategories = categoryData.categories || [];
+  currentProducts = (listingData.listings || []).map(listing => ({
+    id: listing.id,
+    title: listing.title,
+    category: listing.category.name,
+    categoryId: listing.category.id,
+    price: listing.price,
+    condition: listing.condition_state.toUpperCase(),
+    seller: listing.seller.name,
+    sellerEmail: listing.seller.email,
+    description: listing.description,
+    image: /^https?:\/\//i.test(listing.image_url || '')
+      ? listing.image_url
+      : 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop&q=60'
+  }));
+  renderCategories();
+  renderProducts();
+}
+
+function renderCategories() {
+  categoryFilterList.innerHTML = '<li><button class="filter-btn active" data-category="ALL">ALL</button></li>';
+  marketplaceCategories.forEach(category => {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.className = 'filter-btn';
+    button.dataset.category = String(category.id);
+    button.textContent = category.name;
+    item.appendChild(button);
+    categoryFilterList.appendChild(item);
+  });
+
+  const categorySelect = document.getElementById('itemCategory');
+  categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+  marketplaceCategories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = String(category.id);
+    option.textContent = category.name;
+    categorySelect.appendChild(option);
+  });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
 
 // DOM Element Selectors
 const productsGrid = document.getElementById('productsGrid');
@@ -117,8 +152,7 @@ function renderProducts() {
 
   // Filter products by Category and Search Term
   const filtered = currentProducts.filter(item => {
-    const matchesCategory = (selectedCategory === 'ALL') || 
-      (item.category.toUpperCase() === selectedCategory.toUpperCase());
+    const matchesCategory = selectedCategory === 'ALL' || String(item.categoryId) === selectedCategory;
 
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -132,7 +166,7 @@ function renderProducts() {
     if (currentSort === 'price-asc') return a.price - b.price;
     if (currentSort === 'price-desc') return b.price - a.price;
     if (currentSort === 'name-asc') return a.title.localeCompare(b.title);
-    return a.id - b.id; // featured default
+    return b.id - a.id; // newest listings first
   });
 
   // Update item count label
@@ -155,22 +189,27 @@ function renderProducts() {
     card.setAttribute('data-id', product.id);
 
     const conditionClass = product.condition.toLowerCase().replace(/\s+/g, '-');
+    const title = escapeHtml(product.title);
+    const category = escapeHtml(product.category);
+    const seller = escapeHtml(product.seller);
+    const description = escapeHtml(product.description);
+    const image = escapeHtml(product.image);
 
     card.innerHTML = `
       <div class="card-image-wrap">
-        <img src="${product.image}" alt="${product.title}" class="card-image" loading="lazy">
-        <span class="condition-badge ${conditionClass}">${product.condition}</span>
+        <img src="${image}" alt="${title}" class="card-image" loading="lazy">
+        <span class="condition-badge ${escapeHtml(conditionClass)}">${escapeHtml(product.condition)}</span>
       </div>
       <div class="card-content">
-        <span class="card-category">${product.category}</span>
+        <span class="card-category">${category}</span>
         <div class="card-header-row">
-          <h3 class="card-title">${product.title}</h3>
-          <span class="card-price">₹${product.price}</span>
+          <h3 class="card-title">${title}</h3>
+          <span class="card-price">₹${escapeHtml(product.price)}</span>
         </div>
-        <div class="card-seller">BY ${product.seller}</div>
+        <div class="card-seller">BY ${seller}</div>
         <div class="card-actions">
           <button class="btn-chat" data-action="chat" data-id="${product.id}">
-            💬 CHAT
+            ✉️ CONTACT
           </button>
           <button class="btn-info" data-action="info" data-id="${product.id}" title="Item Details">
             ℹ️
@@ -241,24 +280,24 @@ productsGrid.addEventListener('click', (e) => {
 
   if (action === 'chat') {
     openModal(`
-      <h2 style="color:#fff; margin-bottom:0.5rem;">💬 Campus Chat with ${item.seller}</h2>
-      <p style="color:#a1a1aa; font-size:0.85rem; margin-bottom:1rem;">Item: <strong>${item.title}</strong> (₹${item.price})</p>
+      <h2 style="color:#fff; margin-bottom:0.5rem;">Contact ${escapeHtml(item.seller)}</h2>
+      <p style="color:#a1a1aa; font-size:0.85rem; margin-bottom:1rem;">Item: <strong>${escapeHtml(item.title)}</strong> (₹${escapeHtml(item.price)})</p>
       <div style="background:#121214; padding:0.85rem; border-radius:6px; margin-bottom:1rem; font-size:0.85rem; color:#f4f4f5;">
-        <em>"Hi ${item.seller}, is your ${item.title} still available for handover at the campus library?"</em>
+        <em>Seller email: ${escapeHtml(item.sellerEmail)}</em>
       </div>
-      <button class="primary-btn" onclick="alert('Demo: Chat message sent to student seller!')">Send Instant Campus Message</button>
+      <a class="primary-btn" href="mailto:${encodeURIComponent(item.sellerEmail)}?subject=${encodeURIComponent(`Campus listing: ${item.title}`)}">Email seller</a>
     `);
   } else if (action === 'info') {
     openModal(`
-      <h2 style="color:#fff; margin-bottom:0.4rem;">${item.title}</h2>
+      <h2 style="color:#fff; margin-bottom:0.4rem;">${escapeHtml(item.title)}</h2>
       <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-        <span style="color:#f26440; font-weight:700;">${item.category}</span>
-        <span style="color:#fff; font-size:1.2rem; font-weight:800;">₹${item.price}</span>
+        <span style="color:#f26440; font-weight:700;">${escapeHtml(item.category)}</span>
+        <span style="color:#fff; font-size:1.2rem; font-weight:800;">₹${escapeHtml(item.price)}</span>
       </div>
-      <p style="color:#a1a1aa; line-height:1.6; margin-bottom:1rem;">${item.description}</p>
+      <p style="color:#a1a1aa; line-height:1.6; margin-bottom:1rem;">${escapeHtml(item.description)}</p>
       <div style="background:#202024; padding:0.75rem; border-radius:6px; font-size:0.8rem; color:#f4f4f5;">
-        <div><strong>Condition:</strong> ${item.condition}</div>
-        <div><strong>Verified Student Seller:</strong> ${item.seller}</div>
+        <div><strong>Condition:</strong> ${escapeHtml(item.condition)}</div>
+        <div><strong>Student Seller:</strong> ${escapeHtml(item.seller)}</div>
       </div>
     `);
   }
@@ -305,7 +344,7 @@ document.getElementById('openExamHubBtn').addEventListener('click', () => {
 // ------------------------------------------------------------------------------
 const listingForm = document.getElementById('listingForm');
 
-listingForm.addEventListener('submit', (e) => {
+listingForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   // Reset errors
@@ -339,23 +378,6 @@ listingForm.addEventListener('submit', (e) => {
     isValid = false;
   }
 
-  // Seller Name validation
-  const sellerInput = document.getElementById('sellerName');
-  if (sellerInput.value.trim().length < 2) {
-    document.getElementById('sellerNameError').textContent = 'Seller name is required.';
-    sellerInput.classList.add('invalid');
-    isValid = false;
-  }
-
-  // Email validation with Regex
-  const emailInput = document.getElementById('sellerEmail');
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(emailInput.value.trim())) {
-    document.getElementById('sellerEmailError').textContent = 'Please provide a valid email format (e.g. name@campus.edu).';
-    emailInput.classList.add('invalid');
-    isValid = false;
-  }
-
   // Description validation
   const descInput = document.getElementById('itemDescription');
   if (descInput.value.trim().length < 10) {
@@ -377,32 +399,44 @@ listingForm.addEventListener('submit', (e) => {
   const selectedConditionRadio = document.querySelector('input[name="itemCondition"]:checked');
   const condition = selectedConditionRadio ? selectedConditionRadio.value : 'GOOD';
 
-  // Construct new listing object
-  const newItem = {
-    id: Date.now(),
-    title: titleInput.value.trim().toUpperCase(),
-    category: categoryInput.value,
-    price: priceVal,
-    condition: condition,
-    seller: sellerInput.value.trim().toUpperCase(),
-    description: descInput.value.trim(),
-    image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop&q=60'
-  };
-
-  // Prepend to current catalog (State mutation)
-  currentProducts.unshift(newItem);
-
-  // Show success alert
   const alertBox = document.getElementById('formSuccessAlert');
-  alertBox.classList.remove('hidden');
-
-  setTimeout(() => {
-    alertBox.classList.add('hidden');
+  const submitButton = document.getElementById('submitItemBtn');
+  const conditionMap = {
+    'NEW': 'New',
+    'LIKE NEW': 'Like New',
+    'GOOD': 'Good',
+    'ACCEPTABLE': 'Acceptable'
+  };
+  submitButton.disabled = true;
+  alertBox.classList.add('hidden');
+  try {
+    await apiRequest('/api/listings', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: titleInput.value.trim(),
+        description: descInput.value.trim(),
+        price: priceVal,
+        category_id: Number(categoryInput.value),
+        condition_state: conditionMap[condition]
+      })
+    });
+    alertBox.textContent = 'Your listing was published to the marketplace.';
+    alertBox.classList.remove('hidden');
+    alertBox.classList.add('success');
     listingForm.reset();
-    // Switch back to grid view to reveal newly added product
     switchTab(gridTabBtn, gridSection);
-    renderProducts();
-  }, 1200);
+    try {
+      await loadMarketplace();
+    } catch (error) {
+      alertBox.textContent = `Listing published, but the marketplace could not refresh: ${error.message}`;
+    }
+  } catch (error) {
+    alertBox.textContent = error.message;
+    alertBox.classList.remove('success');
+    alertBox.classList.remove('hidden');
+  } finally {
+    submitButton.disabled = false;
+  }
 });
 
 // ------------------------------------------------------------------------------
@@ -503,7 +537,102 @@ document.getElementById('addDomNoteBtn').addEventListener('click', () => {
   textInput.value = '';
 });
 
-// Initial boot render
-document.addEventListener('DOMContentLoaded', () => {
-  renderProducts();
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+
+document.getElementById('showRegisterBtn').addEventListener('click', () => {
+  loginForm.classList.add('hidden');
+  registerForm.classList.remove('hidden');
+  document.getElementById('authTitle').textContent = 'Join your campus';
+  document.getElementById('authSubtitle').textContent = 'Create a student account. New accounts require administrator verification.';
+  setAuthMessage('');
 });
+
+document.getElementById('showLoginBtn').addEventListener('click', () => {
+  registerForm.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+  document.getElementById('authTitle').textContent = 'Welcome back';
+  document.getElementById('authSubtitle').textContent = 'Sign in to browse and trade academic essentials with your campus community.';
+  setAuthMessage('');
+});
+
+loginForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  setAuthMessage('');
+  const submitButton = loginForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const result = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value
+      })
+    });
+    authToken = result.token;
+    sessionStorage.setItem('marketplaceToken', authToken);
+    loginForm.reset();
+    showAuthenticatedApp(result.user);
+  } catch (error) {
+    setAuthMessage(error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+registerForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  setAuthMessage('');
+  const submitButton = registerForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const result = await apiRequest('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        student_id: document.getElementById('registerStudentId').value.trim(),
+        full_name: document.getElementById('registerName').value.trim(),
+        email: document.getElementById('registerEmail').value.trim(),
+        password: document.getElementById('registerPassword').value
+      })
+    });
+    authToken = result.token;
+    sessionStorage.setItem('marketplaceToken', authToken);
+    registerForm.reset();
+    showAuthenticatedApp(result.user);
+  } catch (error) {
+    setAuthMessage(error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    await apiRequest('/api/auth/logout', { method: 'POST' });
+    sessionStorage.removeItem('marketplaceToken');
+    authToken = null;
+    showAuthentication();
+    setAuthMessage('You have been logged out.', true);
+  } catch (error) {
+    document.getElementById('itemCountLabel').textContent = `Could not log out: ${error.message}`;
+  }
+});
+
+async function restoreSession() {
+  if (!authToken) return;
+  try {
+    const result = await apiRequest('/api/auth/me');
+    showAuthenticatedApp(result.user);
+  } catch (error) {
+    if (error.status === 401) {
+      sessionStorage.removeItem('marketplaceToken');
+      authToken = null;
+      showAuthentication();
+      setAuthMessage('Your session expired. Please sign in again.');
+      return;
+    }
+    setAuthMessage(`Could not verify your session: ${error.message}`);
+  }
+}
+
+restoreSession();

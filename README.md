@@ -190,6 +190,20 @@ The PHP API initializes the tables and seed data on its first connection to an
 empty database. Do not deploy the Java desktop app to Railway; it requires a
 desktop environment.
 
+### Deploy on Render
+
+Create a **Web Service** from this repository, choose **Docker**, and leave
+**Root Directory** blank so Render uses the root `Dockerfile`. Configure
+`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASS` with connection
+details for a MySQL database reachable from Render. Render's free web service
+can sleep when idle; it does not provide the MySQL database required by this
+application.
+
+The web client starts with login and registration forms, validates sessions
+through the PHP API, loads marketplace listings/categories from the database,
+and submits listings through the API. Newly registered student accounts remain
+pending until an administrator approves them; only approved students can post.
+
 ---
 
 ## 🔑 Pre-Configured Test Accounts (Viva Presets)

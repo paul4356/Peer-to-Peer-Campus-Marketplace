@@ -58,6 +58,115 @@ body {
   gap: 1rem;
 }
 
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.auth-page {
+  min-height: calc(100vh - 100px);
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(242, 100, 64, 0.13), transparent 55%),
+    var(--bg-primary);
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 2rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.auth-heading {
+  margin-bottom: 1.5rem;
+}
+
+.auth-eyebrow {
+  color: var(--accent-orange);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.auth-heading h2 {
+  margin: 0.35rem 0;
+  color: #fff;
+  font-size: 1.65rem;
+}
+
+.auth-heading p, .auth-switch {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.auth-form label {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 0.72rem 0.85rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.auth-form input:focus {
+  border-color: var(--accent-orange);
+  outline: 2px solid rgba(242, 100, 64, 0.2);
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.auth-switch {
+  margin-top: 0.6rem;
+  text-align: center;
+}
+
+.text-btn {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent-light);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-message {
+  min-height: 1.4rem;
+  margin-top: 0.9rem;
+  color: var(--danger-color);
+  font-size: 0.84rem;
+}
+
+.auth-message.success {
+  color: var(--success-color);
+}
+
 .brand-title {
   font-size: 1.75rem;
   font-weight: 800;
@@ -644,6 +753,12 @@ body {
   color: var(--success-color);
 }
 
+.alert-box:not(.success) {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid var(--danger-color);
+  color: #fca5a5;
+}
+
 /* ------------------------------------------------------------------------------
    JS Lab Playground Cards
    ------------------------------------------------------------------------------ */
@@ -810,5 +925,12 @@ body {
   }
   .products-grid {
     grid-template-columns: 1fr;
+  }
+  .auth-card {
+    padding: 1.4rem;
+  }
+  .account-controls {
+    width: 100%;
+    justify-content: space-between;
   }
 }
