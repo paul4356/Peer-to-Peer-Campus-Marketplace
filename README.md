@@ -161,6 +161,35 @@ Double click **`run-app.bat`** in the project root:
 - Checks and starts PHP REST API server on `http://127.0.0.1:8000`.
 - Launches the Java Swing Desktop Client.
 
+## ☁️ Deploy the Web App on Railway
+
+The repository-root `Dockerfile` deploys the static web client and PHP REST API
+as one Railway web service. Railway's MySQL service is a separate service and
+must be added to the project; the Java Swing desktop client and JDBC demo are
+not web services and are not included in this deployment.
+
+1. Create a Railway project from this GitHub repository and leave the service
+   **Root Directory** set to the repository root.
+2. Add a Railway **MySQL** service to the same project.
+3. In the web service's Variables, add references to the MySQL service:
+
+   | Variable | Reference |
+   |---|---|
+   | `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
+   | `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
+   | `DB_NAME` | `${{MySQL.MYSQLDATABASE}}` |
+   | `DB_USER` | `${{MySQL.MYSQLUSER}}` |
+   | `DB_PASS` | `${{MySQL.MYSQLPASSWORD}}` |
+
+   If you named your database service something other than `MySQL`, replace
+   `MySQL` in each reference with that service's name.
+4. Deploy. Railway builds the root `Dockerfile`; the site is available at the
+   generated domain, and the API health endpoint is `/api/health`.
+
+The PHP API initializes the tables and seed data on its first connection to an
+empty database. Do not deploy the Java desktop app to Railway; it requires a
+desktop environment.
+
 ---
 
 ## 🔑 Pre-Configured Test Accounts (Viva Presets)

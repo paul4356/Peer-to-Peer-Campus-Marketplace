@@ -1,0 +1,12 @@
+.git
+.tools
+.vscode
+**/target
+**/bin
+frontend-java
+jdbc-demo
+lib
+tests
+docs
+*.bat
+mvn.cmd

@@ -13,13 +13,15 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$instance === null) {
-            self::ensureDatabaseExists();
+            if (!Config::hasExternalDatabaseConfig()) {
+                self::ensureDatabaseExists();
+            }
 
             $dsn = sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-                Config::DB_HOST,
-                Config::DB_PORT,
-                Config::DB_NAME
+                Config::dbHost(),
+                Config::dbPort(),
+                Config::dbName()
             );
 
             $options = [
@@ -30,7 +32,7 @@ class Database
             ];
 
             try {
-                self::$instance = new PDO($dsn, Config::DB_USER, Config::DB_PASS, $options);
+                self::$instance = new PDO($dsn, Config::dbUser(), Config::dbPass(), $options);
                 self::ensureRequiredSchema(self::$instance);
             } catch (PDOException $e) {
                 // Secure handling: Do not leak DB credentials or stack trace to client
@@ -49,17 +51,17 @@ class Database
 
     private static function ensureDatabaseExists(): void
     {
-        $dsn = sprintf('mysql:host=%s;port=%d;charset=utf8mb4', Config::DB_HOST, Config::DB_PORT);
+        $dsn = sprintf('mysql:host=%s;port=%d;charset=utf8mb4', Config::dbHost(), Config::dbPort());
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false
         ];
 
-        $pdo = new PDO($dsn, Config::DB_USER, Config::DB_PASS, $options);
+        $pdo = new PDO($dsn, Config::dbUser(), Config::dbPass(), $options);
         $pdo->exec(sprintf(
             'CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
-            Config::DB_NAME
+            Config::dbName()
         ));
     }
 
@@ -116,6 +118,10 @@ class Database
             $statement = trim($statement);
 
             if ($statement === '') {
+                continue;
+            }
+
+            if (preg_match('/^CREATE\s+DATABASE\b/i', $statement) === 1) {
                 continue;
             }
 
